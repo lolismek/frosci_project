@@ -200,10 +200,7 @@ export function GalaxyMap() {
             fontSize: planet.tier === 1 ? 10 : 8,
             fill: 0xffffff,
             fontFamily: 'system-ui, sans-serif',
-            dropShadow: true,
-            dropShadowBlur: 3,
-            dropShadowColor: 0x000000,
-            dropShadowDistance: 0,
+            dropShadow: { blur: 3, color: 0x000000, distance: 0 },
           }),
         });
         label.anchor.set(0, 0.5);
@@ -348,10 +345,7 @@ export function GalaxyMap() {
           fontSize: 11,
           fill: 0xffd700,
           fontFamily: 'system-ui',
-          dropShadow: true,
-          dropShadowBlur: 4,
-          dropShadowColor: 0x000000,
-          dropShadowDistance: 0,
+          dropShadow: { blur: 4, color: 0x000000, distance: 0 },
         }),
       });
       distLabel.anchor.set(0.5);
@@ -362,7 +356,6 @@ export function GalaxyMap() {
       // --- Starship animation along selection path ---
       const dx = pb.x - pa.x;
       const dy = pb.y - pa.y;
-      const pathLen = Math.sqrt(dx * dx + dy * dy);
       const angle = Math.atan2(dy, dx);
 
       // Ship triangle
