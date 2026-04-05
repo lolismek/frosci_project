@@ -1,0 +1,109 @@
+[
+  {
+    "id": "perlemian",
+    "name": "Perlemian Trade Route",
+    "color": "#FFD700",
+    "type": "trade-route",
+    "planets": ["Coruscant", "Ralltiir", "Chandrila", "Brentaal IV", "Rhinnal", "Esseles", "Columex", "Rhen Var", "Quermia", "Ossus"]
+  },
+  {
+    "id": "corellian-run",
+    "name": "Corellian Run",
+    "color": "#FF6B6B",
+    "type": "trade-route",
+    "planets": ["Coruscant", "Corellia", "Nubia", "Druckenwell", "Christophsis", "Rishi"]
+  },
+  {
+    "id": "corellian-spine",
+    "name": "Corellian Trade Spine",
+    "color": "#4ECDC4",
+    "type": "trade-route",
+    "planets": ["Corellia", "Devaron", "Bestine", "Yag'Dhul", "Sullust", "Eriadu"]
+  },
+  {
+    "id": "rimma",
+    "name": "Rimma Trade Route",
+    "color": "#A06CD5",
+    "type": "trade-route",
+    "planets": ["Abregado-rae", "Fondor", "Thyferra", "Yag'Dhul", "Sullust", "Eriadu"]
+  },
+  {
+    "id": "hydian-way",
+    "name": "Hydian Way",
+    "color": "#45B7D1",
+    "type": "trade-route",
+    "planets": ["Bonadan", "Telos IV", "Taris", "Coruscant", "Malastare", "Eriadu"]
+  },
+  {
+    "id": "ep4",
+    "name": "A New Hope",
+    "color": "#4FC3F7",
+    "type": "movie-journey",
+    "episode": "Episode IV",
+    "canonTravelTime": "~16 hours (Tatooine to Alderaan)",
+    "planets": ["Tatooine", "Alderaan", "Yavin"]
+  },
+  {
+    "id": "ep5-luke",
+    "name": "Empire Strikes Back (Luke)",
+    "color": "#81C784",
+    "type": "movie-journey",
+    "episode": "Episode V",
+    "canonTravelTime": "Unknown (Hoth to Dagobah to Bespin)",
+    "planets": ["Hoth", "Dagobah", "Bespin"]
+  },
+  {
+    "id": "ep5-han",
+    "name": "Empire Strikes Back (Han & Leia)",
+    "color": "#E57373",
+    "type": "movie-journey",
+    "episode": "Episode V",
+    "canonTravelTime": "Weeks (no hyperdrive, sublight only)",
+    "planets": ["Hoth", "Bespin"]
+  },
+  {
+    "id": "ep6",
+    "name": "Return of the Jedi",
+    "color": "#FFB74D",
+    "type": "movie-journey",
+    "episode": "Episode VI",
+    "canonTravelTime": "~1 day",
+    "planets": ["Tatooine", "Sullust", "Endor"]
+  },
+  {
+    "id": "ep1",
+    "name": "The Phantom Menace",
+    "color": "#CE93D8",
+    "type": "movie-journey",
+    "episode": "Episode I",
+    "canonTravelTime": "~2 days total",
+    "planets": ["Naboo", "Tatooine", "Coruscant", "Naboo"]
+  },
+  {
+    "id": "ep2",
+    "name": "Attack of the Clones",
+    "color": "#90CAF9",
+    "type": "movie-journey",
+    "episode": "Episode II",
+    "canonTravelTime": "Hours to days",
+    "planets": ["Coruscant", "Kamino", "Geonosis"]
+  },
+  {
+    "id": "ep3",
+    "name": "Revenge of the Sith",
+    "color": "#EF5350",
+    "type": "movie-journey",
+    "episode": "Episode III",
+    "canonTravelTime": "Hours",
+    "planets": ["Coruscant", "Utapau", "Kashyyyk", "Mustafar"]
+  },
+  {
+    "id": "ep7",
+    "name": "The Force Awakens",
+    "color": "#26C6DA",
+    "type": "movie-journey",
+    "episode": "Episode VII",
+    "canonTravelTime": "Hours",
+    "planets": ["Jakku", "Takodana", "D'Qar", "Starkiller Base"]
+  }
+]

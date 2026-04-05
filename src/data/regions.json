@@ -1,0 +1,10 @@
+[
+  { "name": "Deep Core", "innerRadius": 0, "outerRadius": 1.5, "color": "rgba(255, 215, 0, 0.12)" },
+  { "name": "Core", "innerRadius": 1.5, "outerRadius": 3.0, "color": "rgba(255, 165, 80, 0.10)" },
+  { "name": "Colonies", "innerRadius": 3.0, "outerRadius": 4.5, "color": "rgba(210, 180, 140, 0.08)" },
+  { "name": "Inner Rim", "innerRadius": 4.5, "outerRadius": 6.0, "color": "rgba(135, 206, 235, 0.08)" },
+  { "name": "Expansion Region", "innerRadius": 6.0, "outerRadius": 7.5, "color": "rgba(100, 180, 180, 0.06)" },
+  { "name": "Mid Rim", "innerRadius": 7.5, "outerRadius": 9.0, "color": "rgba(70, 130, 180, 0.06)" },
+  { "name": "Outer Rim", "innerRadius": 9.0, "outerRadius": 11.0, "color": "rgba(106, 90, 205, 0.05)" },
+  { "name": "Wild Space", "innerRadius": 11.0, "outerRadius": 13.0, "color": "rgba(46, 26, 71, 0.04)" }
+]
