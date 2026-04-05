@@ -57,3 +57,13 @@ export interface RoundTripRow {
   travelerAge: number;
   homeAge: number;
 }
+
+export interface TachyonicResult {
+  distanceLY: number;
+  speedC: number;
+  gammaImaginary: number;
+  realDistance: number;
+  imaginaryDistance: number;
+  hyperspaceFraction: number;
+  arcHeight: number;
+}

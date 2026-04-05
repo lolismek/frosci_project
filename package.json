@@ -11,11 +11,15 @@
   },
   "dependencies": {
     "@pixi/react": "^8.0.5",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
     "@tailwindcss/vite": "^4.2.2",
+    "@types/three": "^0.183.1",
     "pixi.js": "^8.17.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss": "^4.2.2",
+    "three": "^0.183.2",
     "vitest": "^4.1.2",
     "zustand": "^5.0.12"
   },

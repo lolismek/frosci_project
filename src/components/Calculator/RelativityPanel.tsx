@@ -5,12 +5,16 @@ import { distanceLY } from '../../utils/coordinates';
 import {
   calculateTravel,
   calculateRoundTrips,
+  calculateTachyonicTravel,
   sliderToSpeed,
+  isTachyonic,
   formatYears,
   formatSpeed,
 } from '../../utils/relativity';
 import tradeRoutes from '../../data/trade-routes.json';
 import type { TradeRoute } from '../../types';
+
+const C_BARRIER_SLIDER = 0.85;
 
 export function RelativityPanel() {
   const { selectedPlanets, clearSelection, speedSlider: sliderValue, setSpeedSlider: setSliderValue } = usePlanetStore();
@@ -20,19 +24,24 @@ export function RelativityPanel() {
   const [planetA, planetB] = selectedPlanets;
 
   const speed = sliderToSpeed(sliderValue);
+  const tachyonic = isTachyonic(speed);
   const distance = planetA && planetB ? distanceLY(planetA, planetB) : 0;
 
   const result = useMemo(() => {
-    if (!distance || speed <= 0) return null;
+    if (!distance || speed <= 0 || tachyonic) return null;
     return calculateTravel(distance, speed);
-  }, [distance, speed]);
+  }, [distance, speed, tachyonic]);
+
+  const tachyonicResult = useMemo(() => {
+    if (!distance || !tachyonic) return null;
+    return calculateTachyonicTravel(distance, speed);
+  }, [distance, speed, tachyonic]);
 
   const roundTrips = useMemo(() => {
-    if (!distance || speed <= 0) return [];
+    if (!distance || speed <= 0 || tachyonic) return [];
     return calculateRoundTrips(distance, speed, startAge, 10);
-  }, [distance, speed, startAge]);
+  }, [distance, speed, startAge, tachyonic]);
 
-  // Check if current selection matches a movie journey
   const matchingJourney = useMemo(() => {
     if (!planetA || !planetB || !activeRouteId) return null;
     const route = (tradeRoutes as TradeRoute[]).find((r) => r.id === activeRouteId);
@@ -51,12 +60,16 @@ export function RelativityPanel() {
   }
 
   return (
-    <div className="absolute bottom-0 right-0 z-10 w-[420px] max-h-[90vh] overflow-y-auto bg-space-900/95 backdrop-blur-sm border-l border-t border-white/10 rounded-tl-lg p-5 flex flex-col gap-4">
+    <div className={`absolute bottom-0 right-0 z-10 w-[420px] max-h-[90vh] overflow-y-auto backdrop-blur-sm border-l border-t border-white/10 rounded-tl-lg p-5 flex flex-col gap-4 transition-colors duration-500 ${
+      tachyonic ? 'bg-[#050520]/95' : 'bg-space-900/95'
+    }`}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-sw-gold text-sm font-bold uppercase tracking-wider">
-            Relativistic Travel
+          <h2 className={`text-sm font-bold uppercase tracking-wider transition-colors duration-500 ${
+            tachyonic ? 'text-sw-blue' : 'text-sw-gold'
+          }`}>
+            {tachyonic ? 'Tachyonic Hyperspace' : 'Relativistic Travel'}
           </h2>
           <p className="text-white/60 text-xs mt-1">
             {planetA.Name} → {planetB.Name}
@@ -78,31 +91,47 @@ export function RelativityPanel() {
         </span>
       </div>
 
-      {/* Speed Slider */}
+      {/* Speed Slider with c-barrier */}
       <div>
         <div className="flex justify-between text-xs mb-1">
           <span className="text-white/40">Speed</span>
-          <span className="text-sw-blue font-mono">{formatSpeed(speed)}</span>
+          <span className={`font-mono transition-colors duration-500 ${tachyonic ? 'text-sw-blue' : 'text-sw-blue'}`}>
+            {formatSpeed(speed)}
+          </span>
         </div>
-        <input
-          type="range"
-          min="0.05"
-          max="0.98"
-          step="0.001"
-          value={sliderValue}
-          onChange={(e) => setSliderValue(parseFloat(e.target.value))}
-          className="w-full accent-sw-blue"
-        />
-        <div className="flex justify-between text-[10px] text-white/20 mt-0.5">
+        <div className="relative">
+          <input
+            type="range"
+            min="0.05"
+            max="1.0"
+            step="0.001"
+            value={sliderValue}
+            onChange={(e) => setSliderValue(parseFloat(e.target.value))}
+            className={`w-full ${tachyonic ? 'accent-cyan-400' : 'accent-sky-400'}`}
+          />
+          {/* c-barrier marker */}
+          <div
+            className="absolute top-0 h-5 w-px bg-sw-gold/60"
+            style={{ left: `${C_BARRIER_SLIDER * 100}%` }}
+          />
+          <div
+            className="absolute top-5 text-[9px] text-sw-gold/50 -translate-x-1/2"
+            style={{ left: `${C_BARRIER_SLIDER * 100}%` }}
+          >
+            c
+          </div>
+        </div>
+        <div className="flex justify-between text-[10px] text-white/20 mt-2">
           <span>0.5c</span>
           <span>0.999c</span>
-          <span>0.999999c</span>
+          <span className={tachyonic ? 'text-sw-blue/50' : 'text-white/20'}>10c</span>
+          <span className={tachyonic ? 'text-sw-blue/50' : 'text-white/20'}>1000c</span>
         </div>
       </div>
 
-      {result && (
+      {/* SUBLUMINAL MODE */}
+      {result && !tachyonic && (
         <>
-          {/* Gamma */}
           <div className="bg-white/5 rounded px-3 py-2 flex justify-between items-center">
             <span className="text-white/40 text-xs">Lorentz Factor (γ)</span>
             <span className="text-sw-gold font-mono text-lg font-bold">
@@ -110,7 +139,6 @@ export function RelativityPanel() {
             </span>
           </div>
 
-          {/* Time Comparison */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white/5 rounded px-3 py-3 text-center">
               <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
@@ -130,12 +158,10 @@ export function RelativityPanel() {
             </div>
           </div>
 
-          {/* Human comparison */}
           <p className="text-white/50 text-xs italic text-center leading-relaxed">
             {getHumanComparison(result.timeTravelerYears, result.timePlanetYears)}
           </p>
 
-          {/* Canon comparison */}
           {matchingJourney && matchingJourney.canonTravelTime && (
             <div className="bg-sw-gold/5 border border-sw-gold/20 rounded px-3 py-2">
               <p className="text-sw-gold text-[10px] uppercase tracking-wider mb-1">
@@ -153,7 +179,6 @@ export function RelativityPanel() {
             </div>
           )}
 
-          {/* Round Trip Table */}
           <div>
             <p className="text-white/40 text-[10px] uppercase tracking-wider mb-2">
               Round Trip Aging (starting age: {startAge})
@@ -189,6 +214,94 @@ export function RelativityPanel() {
               </table>
             </div>
           </div>
+        </>
+      )}
+
+      {/* TACHYONIC MODE */}
+      {tachyonicResult && tachyonic && (
+        <>
+          {/* Complex gamma */}
+          <div className="bg-sw-blue/5 border border-sw-blue/20 rounded px-3 py-2 flex justify-between items-center">
+            <span className="text-white/40 text-xs">Lorentz Factor (γ)</span>
+            <span className="text-sw-blue font-mono text-lg font-bold">
+              {tachyonicResult.gammaImaginary.toFixed(3)}i
+            </span>
+          </div>
+
+          {/* Distance decomposition */}
+          <div>
+            <p className="text-white/40 text-[10px] uppercase tracking-wider mb-2">
+              Distance Decomposition
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/5 rounded px-3 py-3 text-center">
+                <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+                  Real (Normal Space)
+                </p>
+                <p className="text-sw-gold font-mono text-sm font-bold">
+                  {Math.round(tachyonicResult.realDistance).toLocaleString()} ly
+                </p>
+              </div>
+              <div className="bg-sw-blue/5 rounded px-3 py-3 text-center border border-sw-blue/10">
+                <p className="text-sw-blue/60 text-[10px] uppercase tracking-wider mb-1">
+                  Imaginary (Hyperspace)
+                </p>
+                <p className="text-sw-blue font-mono text-sm font-bold">
+                  {Math.round(tachyonicResult.imaginaryDistance).toLocaleString()}i ly
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Hyperspace fraction bar */}
+          <div>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-white/40">Hyperspace Fraction</span>
+              <span className="text-sw-blue font-mono">
+                {(tachyonicResult.hyperspaceFraction * 100).toFixed(1)}%
+              </span>
+            </div>
+            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-sw-gold to-sw-blue rounded-full transition-all duration-300"
+                style={{ width: `${tachyonicResult.hyperspaceFraction * 100}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[10px] text-white/20 mt-0.5">
+              <span>Normal Space</span>
+              <span>Hyperspace</span>
+            </div>
+          </div>
+
+          {/* Explanation */}
+          <div className="bg-sw-blue/5 border border-sw-blue/10 rounded px-3 py-2">
+            <p className="text-sw-blue/80 text-[10px] uppercase tracking-wider mb-1">
+              Tachyonic Physics
+            </p>
+            <p className="text-white/50 text-xs leading-relaxed">
+              At {formatSpeed(speed)}, γ becomes imaginary ({tachyonicResult.gammaImaginary.toFixed(3)}i).
+              The distance splits into real and imaginary components — the ship
+              travels {(tachyonicResult.hyperspaceFraction * 100).toFixed(0)}% through
+              a perpendicular "hyperspace" dimension.
+            </p>
+          </div>
+
+          {/* Canon comparison for tachyonic */}
+          {matchingJourney && matchingJourney.canonTravelTime && (
+            <div className="bg-sw-blue/5 border border-sw-blue/20 rounded px-3 py-2">
+              <p className="text-sw-blue text-[10px] uppercase tracking-wider mb-1">
+                Canon vs Tachyonic Model
+              </p>
+              <p className="text-white/70 text-xs">
+                <span className="text-white/40">In the movie: </span>
+                {matchingJourney.canonTravelTime}
+              </p>
+              <p className="text-white/70 text-xs">
+                <span className="text-white/40">Effective travel: </span>
+                {(tachyonicResult.hyperspaceFraction * 100).toFixed(0)}% through hyperspace
+              </p>
+            </div>
+          )}
         </>
       )}
     </div>
