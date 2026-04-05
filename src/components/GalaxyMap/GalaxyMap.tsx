@@ -24,10 +24,11 @@ export function GalaxyMap() {
   const selectionLayerRef = useRef<Container | null>(null);
   const labelContainersRef = useRef<Map<string, Text>>(new Map());
   const shipTickerRef = useRef<Ticker | null>(null);
+  const selectionTickerRef = useRef<Ticker | null>(null);
   const isPanningRef = useRef(false);
   const lastMouseRef = useRef({ x: 0, y: 0 });
 
-  const { selectedPlanets, selectPlanet, maxTier } = usePlanetStore();
+  const { selectedPlanets, selectPlanet, maxTier, speedSlider } = usePlanetStore();
   const { activeRouteId } = useRouteStore();
 
   // Refs for latest state (avoid stale closures)
@@ -39,6 +40,8 @@ export function GalaxyMap() {
   selectedPlanetsRef.current = selectedPlanets;
   const activeRouteIdRef = useRef(activeRouteId);
   activeRouteIdRef.current = activeRouteId;
+  const speedSliderRef = useRef(speedSlider);
+  speedSliderRef.current = speedSlider;
 
   const allPlanets = getAllPlanets();
 
@@ -304,11 +307,17 @@ export function GalaxyMap() {
     }
   }, [maxTier, allPlanets]);
 
-  // Draw selection highlights
+  // Draw selection highlights + ship animation between selected planets
   useEffect(() => {
     const layer = selectionLayerRef.current;
     if (!layer) return;
     layer.removeChildren();
+
+    // Clean up previous selection animation
+    if (selectionTickerRef.current) {
+      selectionTickerRef.current.destroy();
+      selectionTickerRef.current = null;
+    }
 
     const [a, b] = selectedPlanets;
     for (const planet of [a, b]) {
@@ -349,7 +358,60 @@ export function GalaxyMap() {
       distLabel.x = midX;
       distLabel.y = midY - 12;
       layer.addChild(distLabel);
+
+      // --- Starship animation along selection path ---
+      const dx = pb.x - pa.x;
+      const dy = pb.y - pa.y;
+      const pathLen = Math.sqrt(dx * dx + dy * dy);
+      const angle = Math.atan2(dy, dx);
+
+      // Ship triangle
+      const ship = new Graphics();
+      ship.moveTo(6, 0);
+      ship.lineTo(-4, -3.5);
+      ship.lineTo(-2, 0);
+      ship.lineTo(-4, 3.5);
+      ship.closePath();
+      ship.fill({ color: 0xffffff });
+      ship.rotation = angle;
+      layer.addChild(ship);
+
+      // Trail
+      const trail = new Graphics();
+      layer.addChild(trail);
+
+      let progress = 0;
+
+      const ticker = new Ticker();
+      ticker.add((tick) => {
+        // Animation speed scales with the speed slider (0.05 at low, 0.6 at high)
+        const animSpeed = 0.05 + speedSliderRef.current * 0.55;
+        progress += (tick.deltaMS / 1000) * animSpeed;
+        if (progress > 1) progress -= 1;
+
+        const x = pa.x + dx * progress;
+        const y = pa.y + dy * progress;
+        ship.x = x;
+        ship.y = y;
+
+        // Trail behind ship
+        const trailLen = 0.08;
+        const trailStart = Math.max(0, progress - trailLen);
+        trail.clear();
+        trail.moveTo(pa.x + dx * trailStart, pa.y + dy * trailStart);
+        trail.lineTo(x, y);
+        trail.stroke({ width: 2, color: 0xffd700, alpha: 0.4 });
+      });
+      ticker.start();
+      selectionTickerRef.current = ticker;
     }
+
+    return () => {
+      if (selectionTickerRef.current) {
+        selectionTickerRef.current.destroy();
+        selectionTickerRef.current = null;
+      }
+    };
   }, [selectedPlanets, gridToCanvas]);
 
   // Draw active route with starship animation
@@ -427,11 +489,11 @@ export function GalaxyMap() {
 
     // Animate using a dedicated ticker
     let progress = 0; // 0 to 1 along the full path
-    const SPEED = 0.15; // full path per second
 
     const ticker = new Ticker();
     ticker.add((tick) => {
-      progress += (tick.deltaMS / 1000) * SPEED;
+      const animSpeed = 0.05 + speedSliderRef.current * 0.55;
+      progress += (tick.deltaMS / 1000) * animSpeed;
       if (progress > 1) progress -= 1; // loop
 
       // Find position along path

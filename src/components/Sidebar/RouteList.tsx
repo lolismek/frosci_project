@@ -1,4 +1,6 @@
 import { useRouteStore } from '../../stores/useRouteStore';
+import { usePlanetStore } from '../../stores/usePlanetStore';
+import { getPlanetByName } from '../../utils/planets';
 import tradeRoutes from '../../data/trade-routes.json';
 import type { TradeRoute } from '../../types';
 
@@ -8,9 +10,25 @@ const movieJourneys = routes.filter((r) => r.type === 'movie-journey');
 
 export function RouteList() {
   const { activeRouteId, setActiveRoute } = useRouteStore();
+  const { selectPlanet, clearSelection } = usePlanetStore();
 
   const toggle = (id: string) => {
-    setActiveRoute(activeRouteId === id ? null : id);
+    if (activeRouteId === id) {
+      setActiveRoute(null);
+      clearSelection();
+      return;
+    }
+    setActiveRoute(id);
+
+    // Auto-select first and last planet of the route
+    const route = routes.find((r) => r.id === id);
+    if (route && route.planets.length >= 2) {
+      clearSelection();
+      const first = getPlanetByName(route.planets[0]);
+      const last = getPlanetByName(route.planets[route.planets.length - 1]);
+      if (first) selectPlanet(first);
+      if (last) selectPlanet(last);
+    }
   };
 
   return (

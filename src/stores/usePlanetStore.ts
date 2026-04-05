@@ -5,18 +5,21 @@ interface PlanetStore {
   selectedPlanets: [Planet | null, Planet | null];
   maxTier: 1 | 2 | 3 | 4;
   searchQuery: string;
+  speedSlider: number;
 
   selectPlanet: (planet: Planet) => void;
   deselectPlanet: (index: 0 | 1) => void;
   clearSelection: () => void;
   setMaxTier: (tier: 1 | 2 | 3 | 4) => void;
   setSearchQuery: (query: string) => void;
+  setSpeedSlider: (value: number) => void;
 }
 
 export const usePlanetStore = create<PlanetStore>((set) => ({
   selectedPlanets: [null, null],
   maxTier: 2,
   searchQuery: '',
+  speedSlider: 0.5,
 
   selectPlanet: (planet) =>
     set((state) => {
@@ -43,4 +46,6 @@ export const usePlanetStore = create<PlanetStore>((set) => ({
   setMaxTier: (tier) => set({ maxTier: tier }),
 
   setSearchQuery: (query) => set({ searchQuery: query }),
+
+  setSpeedSlider: (value) => set({ speedSlider: value }),
 }));

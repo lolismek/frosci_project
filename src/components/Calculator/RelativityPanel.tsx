@@ -13,9 +13,8 @@ import tradeRoutes from '../../data/trade-routes.json';
 import type { TradeRoute } from '../../types';
 
 export function RelativityPanel() {
-  const { selectedPlanets, clearSelection } = usePlanetStore();
+  const { selectedPlanets, clearSelection, speedSlider: sliderValue, setSpeedSlider: setSliderValue } = usePlanetStore();
   const { activeRouteId } = useRouteStore();
-  const [sliderValue, setSliderValue] = useState(0.5);
   const [startAge] = useState(30);
 
   const [planetA, planetB] = selectedPlanets;
