@@ -42,7 +42,7 @@ export function SelectionCard() {
         position: 'absolute',
         left: 22,
         top: 70,
-        width: 300,
+        width: 264,
         pointerEvents: 'auto',
         zIndex: 10,
       }}

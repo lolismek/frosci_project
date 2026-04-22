@@ -4,10 +4,19 @@ import { getAllPlanets, getPlanetByName } from '../../utils/planets';
 import { usePlanetStore } from '../../stores/usePlanetStore';
 import { useRouteStore } from '../../stores/useRouteStore';
 import { distanceLY } from '../../utils/coordinates';
+import { REGION_DOT_COLORS } from '../../utils/constants';
 import type { Planet } from '../../types';
 import tradeRoutes from '../../data/trade-routes.json';
 import regionsData from '../../data/regions.json';
 import type { TradeRoute, Region } from '../../types';
+
+// rgba(r, g, b, a) → { color: 0xrrggbb, alpha: a }
+function parseRGBA(rgba: string): { color: number; alpha: number } {
+  const m = rgba.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/);
+  if (!m) return { color: 0xefe7d4, alpha: 0.1 };
+  const [r, g, b, a] = [Number(m[1]), Number(m[2]), Number(m[3]), m[4] !== undefined ? Number(m[4]) : 1];
+  return { color: (r << 16) | (g << 8) | b, alpha: a };
+}
 
 const PIXELS_PER_GRID = 60;
 const MIN_ZOOM = 0.3;
@@ -84,18 +93,29 @@ export function GalaxyMap() {
       world.x = cw / 2 - cx;
       world.y = ch / 2 - cy;
 
-      // --- Region rings — thin ink outlines, observatory style ---
+      // --- Region bands — colored concentric discs, largest first so
+      // inner regions paint over outer (matches the 3D galaxy-plane texture).
       const regionLayer = new Container();
       world.addChild(regionLayer);
       const centerPx = gridToCanvas(GALAXY_CENTER_X, GALAXY_CENTER_Y);
-      for (const region of regionsData as Region[]) {
+      const regions = regionsData as Region[];
+      for (const region of [...regions].reverse()) {
         const outerR = region.outerRadius * PIXELS_PER_GRID;
+        const { color, alpha } = parseRGBA(region.color);
+        const band = new Graphics();
+        band.circle(centerPx.x, centerPx.y, outerR);
+        band.fill({ color, alpha });
+        regionLayer.addChild(band);
+
+        // Thin ring outline at region boundary
         const ring = new Graphics();
         ring.circle(centerPx.x, centerPx.y, outerR);
-        ring.stroke({ width: 0.8, color: 0xefe7d4, alpha: 0.12 });
+        ring.stroke({ width: 0.8, color, alpha: Math.min(1, alpha * 3) });
         regionLayer.addChild(ring);
-
-        // Region label placed above the ring at a fixed angle
+      }
+      // Labels drawn on top of all bands
+      for (const region of regions) {
+        const outerR = region.outerRadius * PIXELS_PER_GRID;
         const labelAngle = -Math.PI / 4;
         const label = new Text({
           text: region.name.toUpperCase(),
@@ -106,7 +126,7 @@ export function GalaxyMap() {
             letterSpacing: 2.4,
           }),
         });
-        label.alpha = 0.28;
+        label.alpha = 0.32;
         label.anchor.set(0.5, 1);
         label.x = centerPx.x + Math.cos(labelAngle) * outerR;
         label.y = centerPx.y + Math.sin(labelAngle) * outerR;
@@ -131,21 +151,22 @@ export function GalaxyMap() {
         container.eventMode = 'static';
         container.cursor = 'pointer';
 
-        // Dot — ink-cream, opacity drops by tier
+        // Dot — colored by region, size + alpha drop with tier
         const dot = new Graphics();
-        const size = planet.tier === 1 ? 2.6 : planet.tier === 2 ? 1.8 : planet.tier === 3 ? 1.2 : 0.8;
-        const alpha = planet.tier === 1 ? 1 : planet.tier === 2 ? 0.75 : planet.tier === 3 ? 0.5 : 0.3;
+        const size = planet.tier === 1 ? 2.8 : planet.tier === 2 ? 1.9 : planet.tier === 3 ? 1.2 : 0.8;
+        const alpha = planet.tier === 1 ? 1 : planet.tier === 2 ? 0.85 : planet.tier === 3 ? 0.6 : 0.4;
+        const dotColor = REGION_DOT_COLORS[planet.Region] ?? 0xefe7d4;
 
         if (planet.tier === 1) {
-          // Faint accent glow for prominent worlds only
+          // Region-colored glow for prominent worlds
           const glow = new Graphics();
           glow.circle(0, 0, size * 3);
-          glow.fill({ color: 0xd9641f, alpha: 0.08 });
+          glow.fill({ color: dotColor, alpha: 0.18 });
           container.addChild(glow);
         }
 
         dot.circle(0, 0, size);
-        dot.fill({ color: 0xefe7d4, alpha });
+        dot.fill({ color: dotColor, alpha });
         container.addChild(dot);
 
         // Label

@@ -173,7 +173,7 @@ From `src/utils/relativity.ts`:
 |---|---|
 | `calculateGamma(v/c)` | `1 / √(1 − (v/c)²)` |
 | `calculateTravel(L, v/c)` | `t = L / v`, `τ = t / γ` |
-| `calculateRoundTrips(L, v/c, age, 7)` | twin-paradox table over 8 rows |
+| `calculateRoundTrips(L, v/c, 30, 6)` | twin-paradox table — start age 30, up to 6 round trips (7 rows incl. start) |
 | `calculateTachyonicGamma(v/c)` | `1 / √((v/c)² − 1)` (magnitude) |
 | `calculateTachyonicRapidity(v/c)` | `{real: ½ ln\|(v+c)/(v−c)\|, imag: π/2}` |
 | `calculateTachyonicTravel(L, v/c)` | rest-frame time, `\|τ\|`, `L·√((v/c)²−1)`, ellipse axes |
@@ -183,6 +183,19 @@ There is a test suite (`src/utils/relativity.test.ts`) with 60 tests
 that pin these down: known γ values at 0.5c / 0.9c / 0.99c, symmetry
 around c, the Wick-rotation decomposition, the rest-frame-time
 identity, and the ellipse semi-minor cap.
+
+The Calculator panel also surfaces the formulas themselves as a
+**Derivation strip** below the split-frame result. For each regime
+it shows the symbols, the expression, and the evaluated number
+side-by-side:
+
+- **Subluminal** — `β = v/c`, `γ = 1/√(1 − β²)`, `t = L/v`, `τ = t/γ`
+- **Tachyonic** — `β = v/c`, `|γ| = 1/√(β² − 1)`, `t = L/v`
+  (plus the rapidity decomposition in its own Argand box)
+- **Brane-bulk** — `k` (shortcut factor), `L′ = L/k`, `t = L′/c`
+
+So the viewer can see both the qualitative outcome (years at home vs.
+aboard) and the arithmetic that produced it, in the same card.
 
 ---
 
@@ -202,12 +215,25 @@ which digitizes *The Essential Atlas* (Wallace & Fry, 2009). Each
 planet has a grid coordinate; one grid unit ≈ 5,000 light-years, so
 distance is `√((Δx)² + (Δy)²) · 5000` ly.
 
+**UI surface.** The app is laid out on a fixed 1440 × 900 "observatory"
+stage that scales-to-fit any viewport (the letterbox around it is
+intentional — it keeps the typography and slider ergonomics stable
+across screens). The top bar carries the three regime tabs —
+**Subluminal · Tachyonic · Brane-bulk** — plus the current A → B
+selection. The left sidebar has two cards (planet selection / search,
+and the Atlas tier filter); the right sidebar holds canon trade routes
+and movie journeys. The bottom bar is the speed slider (left) and the
+Calculator split-frame (right), with the map or hyperspace view
+filling the center.
+
 **How the modes are wired.** The speed slider is logarithmic — linear
-perception of `γ` matters more than linear `v/c`. Crossing `v = c`
-toggles an `interpretationMode` flag that's either `subluminal`,
-`brane-bulk`, or `tachyonic` depending on user choice. The 2D map and
-3D view cross-fade. The calculator panel swaps its own contents based
-on the same flag.
+perception of `γ` matters more than linear `v/c`, and the `v = c`
+barrier sits at 72 % of the track so the subluminal and superluminal
+halves both have room to breathe. Below `c` the view is always
+subluminal SR. Crossing `v = c` unlocks an `interpretationMode` flag
+(`tachyonic` or `brane-bulk`), selected by the top-bar tabs; this
+flag decides which of the two FTL readings the 3D view and Calculator
+show. The 2D map and 3D view cross-fade at the c-barrier.
 
 **How the FTL visuals are drawn.**
 

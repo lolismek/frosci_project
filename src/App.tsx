@@ -94,7 +94,7 @@ function App() {
             left: 22,
             right: 22,
             bottom: 18,
-            height: 220,
+            height: 240,
             padding: '12px 18px',
             display: 'grid',
             gridTemplateColumns: '1.1fr 1.4fr',

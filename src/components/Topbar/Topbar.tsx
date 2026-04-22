@@ -72,7 +72,7 @@ export function Topbar() {
             letterSpacing: '-0.01em',
           }}
         >
-          hyperspace
+          frosci
         </div>
         <div
           className="tc-mono"

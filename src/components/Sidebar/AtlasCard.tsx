@@ -16,8 +16,8 @@ export function AtlasCard() {
       style={{
         position: 'absolute',
         left: 22,
-        top: 300,
-        width: 300,
+        top: 270,
+        width: 264,
         pointerEvents: 'auto',
         zIndex: 10,
       }}

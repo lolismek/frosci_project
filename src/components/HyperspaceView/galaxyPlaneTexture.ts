@@ -20,8 +20,10 @@ export function createGalaxyPlaneTexture(): CanvasTexture {
   ctx.fillStyle = '#0a0912';
   ctx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
 
-  // Region rings
-  for (const region of (regionsData as Region[]).slice().reverse()) {
+  // Region bands — colored concentric discs, largest first so inner
+  // regions paint over outer (mirrors the 2D map).
+  const regions = regionsData as Region[];
+  for (const region of regions.slice().reverse()) {
     const outerR = region.outerRadius * PX_PER_UNIT;
     ctx.beginPath();
     ctx.arc(CENTER_X, CENTER_Y, outerR, 0, Math.PI * 2);
@@ -29,13 +31,20 @@ export function createGalaxyPlaneTexture(): CanvasTexture {
     ctx.fill();
   }
 
-  // Grid lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= GRID_UNITS; i++) {
-    const p = i * PX_PER_UNIT;
-    ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(TEX_SIZE, p); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, TEX_SIZE); ctx.stroke();
+  // Thin ring outlines at each region boundary
+  for (const region of regions) {
+    const outerR = region.outerRadius * PX_PER_UNIT;
+    // Pump the alpha up from the translucent fill value so the outline reads.
+    const outlineColor = region.color.replace(/rgba\(([^)]+)\)/, (_, inner) => {
+      const parts = inner.split(',').map((s: string) => s.trim());
+      const a = parts.length >= 4 ? Math.min(1, parseFloat(parts[3]) * 3) : 0.5;
+      return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${a})`;
+    });
+    ctx.beginPath();
+    ctx.arc(CENTER_X, CENTER_Y, outerR, 0, Math.PI * 2);
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
   }
 
   // Planet dots (tier 1 and 2 only)

@@ -99,6 +99,15 @@ export function RelativityPanel() {
           </Side>
         </SplitGrid>
 
+        <FormulaBand
+          rows={[
+            { name: <>β</>, expr: <>v / c</>, value: formatBeta(speed) },
+            { name: <>γ</>, expr: <>1 / √(1 − β²)</>, value: formatGamma(subResult.gamma) },
+            { name: <>t</>, expr: <>L / v</>, value: formatYears(homeYears) },
+            { name: <>τ</>, expr: <>t / γ</>, value: formatYears(travYears) },
+          ]}
+        />
+
         <RoundTripTable rows={roundTrips} />
 
         {canonJourney?.canonTravelTime && (
@@ -128,6 +137,14 @@ export function RelativityPanel() {
             <Tiny accent>The ship's clock no longer labels events — it orders them on an imaginary axis.</Tiny>
           </Side>
         </SplitGrid>
+
+        <FormulaBand
+          rows={[
+            { name: <>β</>, expr: <>v / c</>, value: formatBeta(speed) },
+            { name: <>|γ|</>, expr: <>1 / √(β² − 1)</>, value: imagGamma.toFixed(3) },
+            { name: <>t</>, expr: <>L / v</>, value: formatYears(tachResult.restFrameTimeYears) },
+          ]}
+        />
 
         <div style={{ padding: '10px 14px', borderTop: '1px solid var(--rule)' }}>
           <div className="tc-label" style={{ marginBottom: 4 }}>Rapidity ζ = atanh(v/c)</div>
@@ -197,6 +214,14 @@ export function RelativityPanel() {
           </Side>
         </SplitGrid>
 
+        <FormulaBand
+          rows={[
+            { name: <>k</>, expr: <>shortcut factor</>, value: braneResult.shortcutFactor.toFixed(2) + '×' },
+            { name: <>L′</>, expr: <>L / k</>, value: Math.round(braneResult.chordLY).toLocaleString() + ' ly' },
+            { name: <>t</>, expr: <>L′ / c</>, value: formatYears(braneResult.travelTimeYears) },
+          ]}
+        />
+
         <div style={{ padding: '10px 14px', borderTop: '1px solid var(--rule)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <div className="tc-label">Travel time (ship via bulk)</div>
@@ -240,15 +265,26 @@ export function RelativityPanel() {
 
 function CardFrame({ title, children, liveLabel = 'LIVE' }: { title: string; children: React.ReactNode; liveLabel?: string }) {
   return (
-    <div className="card" style={{ width: '100%' }}>
-      <div className="card-head">
+    <div
+      className="card"
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <div className="card-head" style={{ flex: '0 0 auto' }}>
         <span className="tc-label">{title}</span>
         <span className="tc-mono" style={{ fontSize: 10, color: 'var(--ink-3)' }}>
           <span className="live-dot" />
           {liveLabel}
         </span>
       </div>
-      {children}
+      <div style={{ flex: '1 1 auto', overflowY: 'auto', overflowX: 'hidden' }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -354,6 +390,66 @@ function Footer({ left, right }: { left: React.ReactNode; right: React.ReactNode
     >
       <span>{left}</span>
       <span>{right}</span>
+    </div>
+  );
+}
+
+function FormulaBand({
+  rows,
+}: {
+  rows: { name: React.ReactNode; expr: React.ReactNode; value: React.ReactNode }[];
+}) {
+  return (
+    <div style={{ padding: '10px 14px', borderTop: '1px solid var(--rule)' }}>
+      <div className="tc-label" style={{ marginBottom: 6 }}>Derivation</div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'auto 1fr auto',
+          columnGap: 12,
+          rowGap: 3,
+          alignItems: 'baseline',
+        }}
+      >
+        {rows.flatMap((r, i) => [
+          <span
+            key={`n${i}`}
+            style={{
+              fontFamily: 'var(--serif)',
+              fontStyle: 'italic',
+              fontWeight: 400,
+              fontSize: 14,
+              color: 'var(--accent)',
+              minWidth: 24,
+            }}
+          >
+            {r.name}
+          </span>,
+          <span
+            key={`e${i}`}
+            style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 11,
+              color: 'var(--ink-2)',
+              letterSpacing: '0.02em',
+            }}
+          >
+            = {r.expr}
+          </span>,
+          <span
+            key={`v${i}`}
+            style={{
+              fontFamily: 'var(--mono)',
+              fontSize: 11,
+              color: 'var(--ink)',
+              letterSpacing: '0.02em',
+              textAlign: 'right',
+            }}
+          >
+            = {r.value}
+          </span>,
+        ])}
+      </div>
     </div>
   );
 }
@@ -493,6 +589,21 @@ function formatLives(lives: number): string {
   if (lives < 10) return lives.toFixed(1);
   if (lives < 1000) return lives.toFixed(0);
   return lives.toExponential(1);
+}
+
+function formatBeta(speed: number): string {
+  if (speed >= 1) {
+    if (speed >= 1000) return (speed / 1000).toFixed(2) + '×10³';
+    if (speed >= 10) return speed.toFixed(2);
+    return speed.toFixed(3);
+  }
+  if (speed >= 0.999999) {
+    const nines = Math.min(12, Math.floor(-Math.log10(1 - speed)));
+    return '0.' + '9'.repeat(nines);
+  }
+  if (speed >= 0.99) return speed.toFixed(4);
+  if (speed >= 0.1) return speed.toFixed(3);
+  return speed.toFixed(4);
 }
 
 function formatGamma(gamma: number): string {
