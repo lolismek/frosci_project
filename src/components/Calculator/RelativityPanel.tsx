@@ -6,7 +6,9 @@ import {
   calculateTravel,
   calculateRoundTrips,
   calculateTachyonicTravel,
+  calculateBraneBulkTravel,
   sliderToSpeed,
+  sliderToShortcutFactor,
   isTachyonic,
   formatYears,
   formatSpeed,
@@ -14,10 +16,17 @@ import {
 import tradeRoutes from '../../data/trade-routes.json';
 import type { TradeRoute } from '../../types';
 
-const C_BARRIER_SLIDER = 0.85;
+const C_BARRIER_SLIDER = 0.80;
 
 export function RelativityPanel() {
-  const { selectedPlanets, clearSelection, speedSlider: sliderValue, setSpeedSlider: setSliderValue } = usePlanetStore();
+  const {
+    selectedPlanets,
+    clearSelection,
+    speedSlider: sliderValue,
+    setSpeedSlider: setSliderValue,
+    interpretationMode,
+    setInterpretationMode,
+  } = usePlanetStore();
   const { activeRouteId } = useRouteStore();
   const [startAge] = useState(30);
 
@@ -26,6 +35,7 @@ export function RelativityPanel() {
   const speed = sliderToSpeed(sliderValue);
   const tachyonic = isTachyonic(speed);
   const distance = planetA && planetB ? distanceLY(planetA, planetB) : 0;
+  const shortcutFactor = sliderToShortcutFactor(sliderValue);
 
   const result = useMemo(() => {
     if (!distance || speed <= 0 || tachyonic) return null;
@@ -36,6 +46,11 @@ export function RelativityPanel() {
     if (!distance || !tachyonic) return null;
     return calculateTachyonicTravel(distance, speed);
   }, [distance, speed, tachyonic]);
+
+  const braneBulkResult = useMemo(() => {
+    if (!distance || shortcutFactor <= 1) return null;
+    return calculateBraneBulkTravel(distance, shortcutFactor);
+  }, [distance, shortcutFactor]);
 
   const roundTrips = useMemo(() => {
     if (!distance || speed <= 0 || tachyonic) return [];
@@ -59,17 +74,23 @@ export function RelativityPanel() {
     );
   }
 
+  const superluminal = tachyonic; // slider is past c
+  const showBraneBulk = superluminal && interpretationMode === 'brane-bulk';
+  const showTachyonic = superluminal && interpretationMode === 'tachyonic';
+
   return (
     <div className={`absolute bottom-0 right-0 z-10 w-[420px] max-h-[90vh] overflow-y-auto backdrop-blur-sm border-l border-t border-white/10 rounded-tl-lg p-5 flex flex-col gap-4 transition-colors duration-500 ${
-      tachyonic ? 'bg-[#050520]/95' : 'bg-space-900/95'
+      superluminal ? (showBraneBulk ? 'bg-[#140a05]/95' : 'bg-[#050520]/95') : 'bg-space-900/95'
     }`}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className={`text-sm font-bold uppercase tracking-wider transition-colors duration-500 ${
-            tachyonic ? 'text-sw-blue' : 'text-sw-gold'
+            superluminal ? (showBraneBulk ? 'text-sw-gold' : 'text-sw-blue') : 'text-sw-gold'
           }`}>
-            {tachyonic ? 'Tachyonic Hyperspace' : 'Relativistic Travel'}
+            {!superluminal && 'Relativistic Travel'}
+            {showBraneBulk && 'Brane-Bulk Shortcut'}
+            {showTachyonic && 'Tachyonic Hyperspace'}
           </h2>
           <p className="text-white/60 text-xs mt-1">
             {planetA.Name} → {planetB.Name}
@@ -83,20 +104,54 @@ export function RelativityPanel() {
         </button>
       </div>
 
+      {/* Interpretation mode toggle (only meaningful past c) */}
+      {superluminal && (
+        <div className="flex items-center gap-1 text-[10px] bg-white/5 rounded p-1">
+          <button
+            onClick={() => setInterpretationMode('brane-bulk')}
+            className={`flex-1 px-2 py-1.5 rounded transition-colors cursor-pointer ${
+              interpretationMode === 'brane-bulk'
+                ? 'bg-sw-gold/20 text-sw-gold font-semibold'
+                : 'text-white/50 hover:text-white/80'
+            }`}
+            title="Randall-Sundrum brane-bulk shortcut (Chung-Freese 2000)"
+          >
+            Brane-Bulk Shortcut
+          </button>
+          <button
+            onClick={() => setInterpretationMode('tachyonic')}
+            className={`flex-1 px-2 py-1.5 rounded transition-colors cursor-pointer ${
+              interpretationMode === 'tachyonic'
+                ? 'bg-sw-blue/20 text-sw-blue font-semibold'
+                : 'text-white/50 hover:text-white/80'
+            }`}
+            title="Recami Extended Relativity / Rauscher complex 8-space"
+          >
+            Tachyonic (Recami)
+          </button>
+        </div>
+      )}
+
       {/* Distance */}
       <div className="bg-white/5 rounded px-3 py-2">
-        <span className="text-white/40 text-xs">Distance: </span>
+        <span className="text-white/40 text-xs">
+          {showBraneBulk ? 'Brane distance: ' : 'Distance: '}
+        </span>
         <span className="text-white font-mono text-sm">
           {Math.round(distance).toLocaleString()} light-years
         </span>
       </div>
 
-      {/* Speed Slider with c-barrier */}
+      {/* Speed Slider */}
       <div>
         <div className="flex justify-between text-xs mb-1">
-          <span className="text-white/40">Speed</span>
-          <span className={`font-mono transition-colors duration-500 ${tachyonic ? 'text-sw-blue' : 'text-sw-blue'}`}>
-            {formatSpeed(speed)}
+          <span className="text-white/40">
+            {showBraneBulk ? 'Bulk shortcut depth' : 'Speed'}
+          </span>
+          <span className="font-mono text-sw-blue">
+            {showBraneBulk
+              ? `${braneBulkResult ? braneBulkResult.apparentSpeedC.toFixed(2) : '1.00'}c apparent`
+              : formatSpeed(speed)}
           </span>
         </div>
         <div className="relative">
@@ -107,9 +162,8 @@ export function RelativityPanel() {
             step="0.001"
             value={sliderValue}
             onChange={(e) => setSliderValue(parseFloat(e.target.value))}
-            className={`w-full ${tachyonic ? 'accent-cyan-400' : 'accent-sky-400'}`}
+            className={`w-full ${superluminal ? 'accent-cyan-400' : 'accent-sky-400'}`}
           />
-          {/* c-barrier marker */}
           <div
             className="absolute top-0 h-5 w-px bg-sw-gold/60"
             style={{ left: `${C_BARRIER_SLIDER * 100}%` }}
@@ -124,13 +178,13 @@ export function RelativityPanel() {
         <div className="flex justify-between text-[10px] text-white/20 mt-2">
           <span>0.5c</span>
           <span>0.999c</span>
-          <span className={tachyonic ? 'text-sw-blue/50' : 'text-white/20'}>10c</span>
-          <span className={tachyonic ? 'text-sw-blue/50' : 'text-white/20'}>1000c</span>
+          <span className={superluminal ? 'text-sw-blue/50' : 'text-white/20'}>10c</span>
+          <span className={superluminal ? 'text-sw-blue/50' : 'text-white/20'}>1000c</span>
         </div>
       </div>
 
       {/* SUBLUMINAL MODE */}
-      {result && !tachyonic && (
+      {result && !superluminal && (
         <>
           <div className="bg-white/5 rounded px-3 py-2 flex justify-between items-center">
             <span className="text-white/40 text-xs">Lorentz Factor (γ)</span>
@@ -217,10 +271,103 @@ export function RelativityPanel() {
         </>
       )}
 
-      {/* TACHYONIC MODE */}
-      {tachyonicResult && tachyonic && (
+      {/* BRANE-BULK MODE */}
+      {showBraneBulk && braneBulkResult && (
         <>
-          {/* Complex gamma */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/5 rounded px-3 py-3 text-center">
+              <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+                Brane Path (Photon)
+              </p>
+              <p className="text-sw-red font-mono text-sm font-bold">
+                {Math.round(braneBulkResult.braneLengthLY).toLocaleString()} ly
+              </p>
+            </div>
+            <div className="bg-sw-gold/5 rounded px-3 py-3 text-center border border-sw-gold/20">
+              <p className="text-sw-gold/70 text-[10px] uppercase tracking-wider mb-1">
+                Bulk Chord (Ship)
+              </p>
+              <p className="text-sw-gold font-mono text-sm font-bold">
+                {Math.round(braneBulkResult.chordLY).toLocaleString()} ly
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-sw-gold/5 border border-sw-gold/20 rounded px-3 py-2 flex justify-between items-center">
+            <span className="text-white/40 text-xs">Shortcut Factor</span>
+            <span className="text-sw-gold font-mono text-lg font-bold">
+              {braneBulkResult.shortcutFactor < 100
+                ? braneBulkResult.shortcutFactor.toFixed(2) + '×'
+                : Math.round(braneBulkResult.shortcutFactor).toLocaleString() + '×'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/5 rounded px-3 py-3 text-center">
+              <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+                Ship's Local Speed
+              </p>
+              <p className="text-emerald-400 font-mono text-sm font-bold">c (exactly)</p>
+            </div>
+            <div className="bg-white/5 rounded px-3 py-3 text-center">
+              <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+                Apparent Brane Speed
+              </p>
+              <p className="text-sw-gold font-mono text-sm font-bold">
+                {braneBulkResult.apparentSpeedC < 100
+                  ? braneBulkResult.apparentSpeedC.toFixed(2) + 'c'
+                  : Math.round(braneBulkResult.apparentSpeedC).toLocaleString() + 'c'}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white/5 rounded px-3 py-3 text-center">
+            <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+              Travel Time (ship via bulk)
+            </p>
+            <p className="text-sw-blue font-mono text-lg font-bold">
+              {formatYears(braneBulkResult.travelTimeYears)}
+            </p>
+            <p className="text-white/40 text-[10px] mt-1">
+              Photon via brane: {formatYears(braneBulkResult.braneLengthLY)}
+            </p>
+          </div>
+
+          <div className="bg-sw-gold/5 border border-sw-gold/10 rounded px-3 py-2">
+            <p className="text-sw-gold/80 text-[10px] uppercase tracking-wider mb-1">
+              Brane-Bulk Physics
+            </p>
+            <p className="text-white/55 text-xs leading-relaxed">
+              Our galaxy is a 3+1D brane embedded in a higher-dimensional bulk
+              (Randall-Sundrum, 1999). A chord through the bulk is shorter than
+              the curved path along the brane. The ship never locally exceeds c —
+              it just takes the shorter route. This is the shortcut mechanism of
+              Chung-Freese (2000); constrained by GW170817 (2017).
+            </p>
+          </div>
+
+          {matchingJourney && matchingJourney.canonTravelTime && (
+            <div className="bg-sw-gold/5 border border-sw-gold/20 rounded px-3 py-2">
+              <p className="text-sw-gold text-[10px] uppercase tracking-wider mb-1">
+                Canon vs Brane-Bulk Model
+              </p>
+              <p className="text-white/70 text-xs">
+                <span className="text-white/40">In the movie: </span>
+                {matchingJourney.canonTravelTime}
+              </p>
+              <p className="text-white/70 text-xs">
+                <span className="text-white/40">Bulk shortcut: </span>
+                {braneBulkResult.shortcutFactor.toFixed(0)}× faster than light via
+                brane path
+              </p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* TACHYONIC MODE */}
+      {showTachyonic && tachyonicResult && (
+        <>
           <div className="bg-sw-blue/5 border border-sw-blue/20 rounded px-3 py-2 flex justify-between items-center">
             <span className="text-white/40 text-xs">Lorentz Factor (γ)</span>
             <span className="text-sw-blue font-mono text-lg font-bold">
@@ -228,7 +375,6 @@ export function RelativityPanel() {
             </span>
           </div>
 
-          {/* Distance decomposition */}
           <div>
             <p className="text-white/40 text-[10px] uppercase tracking-wider mb-2">
               Distance Decomposition
@@ -253,7 +399,6 @@ export function RelativityPanel() {
             </div>
           </div>
 
-          {/* Hyperspace fraction bar */}
           <div>
             <div className="flex justify-between text-xs mb-1">
               <span className="text-white/40">Hyperspace Fraction</span>
@@ -273,20 +418,20 @@ export function RelativityPanel() {
             </div>
           </div>
 
-          {/* Explanation */}
           <div className="bg-sw-blue/5 border border-sw-blue/10 rounded px-3 py-2">
             <p className="text-sw-blue/80 text-[10px] uppercase tracking-wider mb-1">
-              Tachyonic Physics
+              Tachyonic Physics (Recami)
             </p>
             <p className="text-white/50 text-xs leading-relaxed">
               At {formatSpeed(speed)}, γ becomes imaginary ({tachyonicResult.gammaImaginary.toFixed(3)}i).
-              The distance splits into real and imaginary components — the ship
+              Following Recami's Extended Relativity and Rauscher's complex 8-space,
+              the distance splits into real + imaginary components — the ship
               travels {(tachyonicResult.hyperspaceFraction * 100).toFixed(0)}% through
-              a perpendicular "hyperspace" dimension.
+              a perpendicular "hyperspace" axis. Minority interpretation; not
+              observationally confirmed.
             </p>
           </div>
 
-          {/* Canon comparison for tachyonic */}
           {matchingJourney && matchingJourney.canonTravelTime && (
             <div className="bg-sw-blue/5 border border-sw-blue/20 rounded px-3 py-2">
               <p className="text-sw-blue text-[10px] uppercase tracking-wider mb-1">

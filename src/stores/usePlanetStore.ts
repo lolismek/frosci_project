@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import type { Planet } from '../types';
+import type { Planet, InterpretationMode } from '../types';
 
 interface PlanetStore {
   selectedPlanets: [Planet | null, Planet | null];
   maxTier: 1 | 2 | 3 | 4;
   searchQuery: string;
   speedSlider: number;
+  interpretationMode: InterpretationMode;
 
   selectPlanet: (planet: Planet) => void;
   deselectPlanet: (index: 0 | 1) => void;
@@ -13,6 +14,7 @@ interface PlanetStore {
   setMaxTier: (tier: 1 | 2 | 3 | 4) => void;
   setSearchQuery: (query: string) => void;
   setSpeedSlider: (value: number) => void;
+  setInterpretationMode: (mode: InterpretationMode) => void;
 }
 
 export const usePlanetStore = create<PlanetStore>((set) => ({
@@ -20,6 +22,7 @@ export const usePlanetStore = create<PlanetStore>((set) => ({
   maxTier: 2,
   searchQuery: '',
   speedSlider: 0.5,
+  interpretationMode: 'brane-bulk',
 
   selectPlanet: (planet) =>
     set((state) => {
@@ -48,4 +51,6 @@ export const usePlanetStore = create<PlanetStore>((set) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   setSpeedSlider: (value) => set({ speedSlider: value }),
+
+  setInterpretationMode: (mode) => set({ interpretationMode: mode }),
 }));

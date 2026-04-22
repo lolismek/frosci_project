@@ -1,6 +1,6 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { CubicBezierCurve3, Vector3, Mesh } from 'three';
+import { CubicBezierCurve3, Vector3, Mesh, LineCurve3 } from 'three';
 
 interface ShipAnimationProps {
   startX: number;
@@ -9,26 +9,54 @@ interface ShipAnimationProps {
   endZ: number;
   arcHeight: number;
   animSpeed: number;
+  /** 'sequential' = sharp ascent, plateau, sharp descent.
+   *  'smooth' = symmetric bulge.
+   *  'chord' = straight line (brane-bulk chord through bulk). */
+  shape?: 'sequential' | 'smooth' | 'chord';
+  /** Ping-pong back and forth vs one-way loop. */
+  roundTrip?: boolean;
 }
 
-export function ShipAnimation({ startX, startZ, endX, endZ, arcHeight, animSpeed }: ShipAnimationProps) {
+export function ShipAnimation({
+  startX, startZ, endX, endZ, arcHeight, animSpeed,
+  shape = 'sequential', roundTrip = true,
+}: ShipAnimationProps) {
   const meshRef = useRef<Mesh>(null);
   const progressRef = useRef(0);
+  const directionRef = useRef(1);
 
   const curve = useMemo(() => {
     const start = new Vector3(startX, 0, startZ);
     const end = new Vector3(endX, 0, endZ);
+
+    if (shape === 'chord') {
+      return new LineCurve3(start, end);
+    }
+
     const dx = endX - startX;
     const dz = endZ - startZ;
-    const ctrl1 = new Vector3(startX + dx * 0.25, arcHeight, startZ + dz * 0.25);
-    const ctrl2 = new Vector3(startX + dx * 0.75, arcHeight, startZ + dz * 0.75);
+    const t1 = shape === 'sequential' ? 0.08 : 0.25;
+    const t2 = shape === 'sequential' ? 0.92 : 0.75;
+    const ctrl1 = new Vector3(startX + dx * t1, arcHeight, startZ + dz * t1);
+    const ctrl2 = new Vector3(startX + dx * t2, arcHeight, startZ + dz * t2);
     return new CubicBezierCurve3(start, ctrl1, ctrl2, end);
-  }, [startX, startZ, endX, endZ, arcHeight]);
+  }, [startX, startZ, endX, endZ, arcHeight, shape]);
 
   useFrame((_, delta) => {
     if (!meshRef.current) return;
-    progressRef.current += delta * animSpeed * 0.15;
-    if (progressRef.current > 1) progressRef.current -= 1;
+    progressRef.current += directionRef.current * delta * animSpeed * 0.15;
+
+    if (roundTrip) {
+      if (progressRef.current >= 1) {
+        progressRef.current = 1;
+        directionRef.current = -1;
+      } else if (progressRef.current <= 0) {
+        progressRef.current = 0;
+        directionRef.current = 1;
+      }
+    } else {
+      if (progressRef.current > 1) progressRef.current -= 1;
+    }
 
     const pos = curve.getPointAt(progressRef.current);
     const tangent = curve.getTangentAt(progressRef.current);
@@ -36,7 +64,7 @@ export function ShipAnimation({ startX, startZ, endX, endZ, arcHeight, animSpeed
     meshRef.current.lookAt(pos.clone().add(tangent));
   });
 
-  if (arcHeight <= 0) return null;
+  if (shape !== 'chord' && arcHeight <= 0) return null;
 
   return (
     <mesh ref={meshRef}>

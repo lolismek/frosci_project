@@ -67,3 +67,14 @@ export interface TachyonicResult {
   hyperspaceFraction: number;
   arcHeight: number;
 }
+
+export type InterpretationMode = 'brane-bulk' | 'tachyonic';
+
+export interface BraneBulkResult {
+  chordLY: number;
+  braneLengthLY: number;
+  shortcutFactor: number;
+  apparentSpeedC: number;
+  travelTimeYears: number;
+  bulgeHeightGrid: number;
+}

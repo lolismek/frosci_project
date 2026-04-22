@@ -9,9 +9,12 @@ interface TravelArcProps {
   endZ: number;
   arcHeight: number;
   color: string;
+  /** 'sequential' = sharp ascent, plateau, sharp descent (canon-matching jump).
+   *  'smooth' = symmetric bulge (legacy look). */
+  shape?: 'sequential' | 'smooth';
 }
 
-export function TravelArc({ startX, startZ, endX, endZ, arcHeight, color }: TravelArcProps) {
+export function TravelArc({ startX, startZ, endX, endZ, arcHeight, color, shape = 'sequential' }: TravelArcProps) {
   const points = useMemo(() => {
     const start = new Vector3(startX, 0, startZ);
     const end = new Vector3(endX, 0, endZ);
@@ -19,39 +22,27 @@ export function TravelArc({ startX, startZ, endX, endZ, arcHeight, color }: Trav
     const dx = endX - startX;
     const dz = endZ - startZ;
 
-    const ctrl1 = new Vector3(startX + dx * 0.25, arcHeight, startZ + dz * 0.25);
-    const ctrl2 = new Vector3(startX + dx * 0.75, arcHeight, startZ + dz * 0.75);
+    // Sequential: control points close to endpoints horizontally at full height → ship
+    // rockets up at A, cruises at hyperspace plateau, drops down at B.
+    // Smooth: old symmetric bulge at 25%/75%.
+    const t1 = shape === 'sequential' ? 0.08 : 0.25;
+    const t2 = shape === 'sequential' ? 0.92 : 0.75;
+
+    const ctrl1 = new Vector3(startX + dx * t1, arcHeight, startZ + dz * t1);
+    const ctrl2 = new Vector3(startX + dx * t2, arcHeight, startZ + dz * t2);
 
     const curve = new CubicBezierCurve3(start, ctrl1, ctrl2, end);
     return curve.getPoints(64);
-  }, [startX, startZ, endX, endZ, arcHeight]);
+  }, [startX, startZ, endX, endZ, arcHeight, shape]);
 
   if (arcHeight <= 0) return null;
 
   return (
     <>
-      {/* Main arc */}
+      <Line points={points} color={color} lineWidth={3} transparent opacity={0.9} />
+      <Line points={points} color={color} lineWidth={8} transparent opacity={0.15} />
       <Line
-        points={points}
-        color={color}
-        lineWidth={3}
-        transparent
-        opacity={0.9}
-      />
-      {/* Glow arc */}
-      <Line
-        points={points}
-        color={color}
-        lineWidth={8}
-        transparent
-        opacity={0.15}
-      />
-      {/* Vertical guides at start and end */}
-      <Line
-        points={[
-          [startX, 0, startZ],
-          [startX, arcHeight * 0.3, startZ],
-        ]}
+        points={[[startX, 0, startZ], [startX, arcHeight * 0.3, startZ]]}
         color="#ffffff"
         lineWidth={1}
         transparent
@@ -61,10 +52,7 @@ export function TravelArc({ startX, startZ, endX, endZ, arcHeight, color }: Trav
         gapSize={0.15}
       />
       <Line
-        points={[
-          [endX, 0, endZ],
-          [endX, arcHeight * 0.3, endZ],
-        ]}
+        points={[[endX, 0, endZ], [endX, arcHeight * 0.3, endZ]]}
         color="#ffffff"
         lineWidth={1}
         transparent
