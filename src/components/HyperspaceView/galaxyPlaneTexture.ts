@@ -17,7 +17,7 @@ export function createGalaxyPlaneTexture(): CanvasTexture {
   const ctx = canvas.getContext('2d')!;
 
   // Background
-  ctx.fillStyle = '#060612';
+  ctx.fillStyle = '#0a0912';
   ctx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
 
   // Region rings

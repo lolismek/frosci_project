@@ -59,10 +59,10 @@ export function WarpedGalaxyPlane({ size, texture }: WarpedGalaxyPlaneProps) {
         position={[size / 2, -0.005, size / 2]}
       >
         <meshBasicMaterial
-          color="#ff8855"
+          color="#D9641F"
           wireframe
           transparent
-          opacity={0.22}
+          opacity={0.18}
           side={DoubleSide}
           depthWrite={false}
         />

@@ -32,7 +32,7 @@ export function TravelArc({ startX, startZ, endX, endZ, semiMinor, color }: Trav
       <Line points={points} color={color} lineWidth={8} transparent opacity={0.15} />
       <Line
         points={[[startX, 0, startZ], [startX, semiMinor * 0.25, startZ]]}
-        color="#ffffff"
+        color="#EFE7D4"
         lineWidth={1}
         transparent
         opacity={0.15}
@@ -42,7 +42,7 @@ export function TravelArc({ startX, startZ, endX, endZ, semiMinor, color }: Trav
       />
       <Line
         points={[[endX, 0, endZ], [endX, semiMinor * 0.25, endZ]]}
-        color="#ffffff"
+        color="#EFE7D4"
         lineWidth={1}
         transparent
         opacity={0.15}

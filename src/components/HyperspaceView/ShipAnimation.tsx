@@ -95,8 +95,8 @@ export function ShipAnimation({
       <coneGeometry args={[0.15, 0.5, 6]} />
       <meshStandardMaterial
         ref={materialRef}
-        color="#ffffff"
-        emissive="#88ccff"
+        color="#EFE7D4"
+        emissive="#D9641F"
         emissiveIntensity={1.5}
         transparent
         opacity={0}

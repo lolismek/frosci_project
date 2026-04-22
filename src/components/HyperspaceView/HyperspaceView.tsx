@@ -68,7 +68,7 @@ export function HyperspaceView() {
         near: 0.1,
         far: 200,
       }}
-      style={{ background: '#050510' }}
+      style={{ background: '#0a0912' }}
     >
       <ambientLight intensity={0.4} />
       <pointLight position={[10, 20, 10]} intensity={0.8} />
@@ -105,8 +105,10 @@ export function HyperspaceView() {
             center
             style={{
               color: '#4FC3F7',
-              fontSize: '11px',
-              fontFamily: 'system-ui',
+              fontSize: '10px',
+              fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
               whiteSpace: 'nowrap',
               opacity: 0.75,
               pointerEvents: 'none',
@@ -132,7 +134,7 @@ export function HyperspaceView() {
               [planetA.trueX, aHeight, planetA.trueY],
               [planetB.trueX, bHeight, planetB.trueY],
             ]}
-            color="#FFD700"
+            color="#D9641F"
             lineWidth={4}
             transparent
             opacity={1}
@@ -158,7 +160,7 @@ export function HyperspaceView() {
             [planetA.trueX, 0.02, planetA.trueY],
             [planetB.trueX, 0.02, planetB.trueY],
           ]}
-          color="#FFD700"
+          color="#D9641F"
           lineWidth={1.5}
           transparent
           opacity={0.3}
@@ -204,19 +206,20 @@ function PlanetMarker({ x, y, z, name }: { x: number; y: number; z: number; name
     <group position={[x, y, z]}>
       <mesh>
         <sphereGeometry args={[0.2, 16, 16]} />
-        <meshStandardMaterial color="#FFD700" emissive="#FFD700" emissiveIntensity={2} />
+        <meshStandardMaterial color="#D9641F" emissive="#D9641F" emissiveIntensity={2} />
       </mesh>
-      <Line points={[[0, 0, 0], [0, 0.8, 0]]} color="#FFD700" lineWidth={1} transparent opacity={0.5} />
+      <Line points={[[0, 0, 0], [0, 0.8, 0]]} color="#D9641F" lineWidth={1} transparent opacity={0.5} />
       <Html
         position={[0, 1.2, 0]}
         center
         style={{
-          color: '#FFD700',
+          color: '#EFE7D4',
           fontSize: '12px',
-          fontFamily: 'system-ui',
-          fontWeight: 'bold',
+          fontFamily: 'Inter, system-ui',
+          fontWeight: 500,
+          letterSpacing: '0.02em',
           whiteSpace: 'nowrap',
-          textShadow: '0 0 8px rgba(0,0,0,0.8)',
+          textShadow: '0 0 8px rgba(10,9,18,0.9)',
           pointerEvents: 'none',
         }}
       >

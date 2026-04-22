@@ -61,7 +61,7 @@ export function GalaxyMap() {
     (async () => {
       await app.init({
         resizeTo: canvasRef.current!,
-        background: 0x0a0a1a,
+        background: 0x0a0912,
         antialias: true,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
@@ -109,11 +109,12 @@ export function GalaxyMap() {
           text: region.name,
           style: new TextStyle({
             fontSize: 10,
-            fill: 0xffffff,
-            fontFamily: 'system-ui, sans-serif',
+            fill: 0xefe7d4,
+            fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+            letterSpacing: 1.6,
           }),
         });
-        label.alpha = 0.35;
+        label.alpha = 0.3;
         label.anchor.set(0.5);
         label.x = centerPx.x + Math.cos(labelAngle) * labelR;
         label.y = centerPx.y + Math.sin(labelAngle) * labelR;
@@ -125,7 +126,7 @@ export function GalaxyMap() {
       const gridLayer = new Container();
       world.addChild(gridLayer);
       const gridGfx = new Graphics();
-      gridGfx.setStrokeStyle({ width: 0.5, color: 0xffffff, alpha: 0.08 });
+      gridGfx.setStrokeStyle({ width: 0.5, color: 0xefe7d4, alpha: 0.06 });
       for (let i = 0; i <= 21; i++) {
         gridGfx.moveTo(0, i * PIXELS_PER_GRID);
         gridGfx.lineTo(21 * PIXELS_PER_GRID, i * PIXELS_PER_GRID);
@@ -140,9 +141,9 @@ export function GalaxyMap() {
       for (let i = 0; i < gridLetters.length; i++) {
         const lbl = new Text({
           text: gridLetters[i],
-          style: new TextStyle({ fontSize: 9, fill: 0xffffff, fontFamily: 'system-ui' }),
+          style: new TextStyle({ fontSize: 9, fill: 0xefe7d4, fontFamily: 'JetBrains Mono, ui-monospace, monospace' }),
         });
-        lbl.alpha = 0.2;
+        lbl.alpha = 0.25;
         lbl.anchor.set(0.5);
         lbl.x = (i + 1.5) * PIXELS_PER_GRID;
         lbl.y = -6;
@@ -151,9 +152,9 @@ export function GalaxyMap() {
       for (let i = 1; i <= 21; i++) {
         const lbl = new Text({
           text: String(i),
-          style: new TextStyle({ fontSize: 9, fill: 0xffffff, fontFamily: 'system-ui' }),
+          style: new TextStyle({ fontSize: 9, fill: 0xefe7d4, fontFamily: 'JetBrains Mono, ui-monospace, monospace' }),
         });
-        lbl.alpha = 0.2;
+        lbl.alpha = 0.25;
         lbl.anchor.set(0.5);
         lbl.x = -10;
         lbl.y = (i + 0.5) * PIXELS_PER_GRID;
@@ -199,9 +200,9 @@ export function GalaxyMap() {
           text: planet.Name,
           style: new TextStyle({
             fontSize: planet.tier === 1 ? 10 : 8,
-            fill: 0xffffff,
-            fontFamily: 'system-ui, sans-serif',
-            dropShadow: { blur: 3, color: 0x000000, distance: 0 },
+            fill: 0xefe7d4,
+            fontFamily: 'Inter, system-ui, sans-serif',
+            dropShadow: { blur: 3, color: 0x0a0912, distance: 0 },
           }),
         });
         label.anchor.set(0, 0.5);
@@ -323,7 +324,7 @@ export function GalaxyMap() {
       const pos = gridToCanvas(planet.trueX, planet.trueY);
       const ring = new Graphics();
       ring.circle(pos.x, pos.y, 12);
-      ring.stroke({ width: 2, color: 0xffd700 });
+      ring.stroke({ width: 1.5, color: 0xd9641f });
       layer.addChild(ring);
     }
 
@@ -333,7 +334,7 @@ export function GalaxyMap() {
       const line = new Graphics();
       line.moveTo(pa.x, pa.y);
       line.lineTo(pb.x, pb.y);
-      line.stroke({ width: 1.5, color: 0xffd700, alpha: 0.6 });
+      line.stroke({ width: 1.5, color: 0xd9641f, alpha: 0.6 });
       layer.addChild(line);
 
       // Distance label (ly, via the shared coordinate util)
@@ -344,9 +345,10 @@ export function GalaxyMap() {
         text: `${Math.round(dist).toLocaleString()} ly`,
         style: new TextStyle({
           fontSize: 11,
-          fill: 0xffd700,
-          fontFamily: 'system-ui',
-          dropShadow: { blur: 4, color: 0x000000, distance: 0 },
+          fill: 0xd9641f,
+          fontFamily: 'JetBrains Mono, ui-monospace, monospace',
+          letterSpacing: 1.2,
+          dropShadow: { blur: 4, color: 0x0a0912, distance: 0 },
         }),
       });
       distLabel.anchor.set(0.5);
@@ -369,7 +371,7 @@ export function GalaxyMap() {
         ship.lineTo(-2, 0);
         ship.lineTo(-4, 3.5);
         ship.closePath();
-        ship.fill({ color: 0xffffff });
+        ship.fill({ color: 0xefe7d4 });
         ship.rotation = angle;
         layer.addChild(ship);
 
@@ -394,7 +396,7 @@ export function GalaxyMap() {
           trail.clear();
           trail.moveTo(pa.x + dx * trailStart, pa.y + dy * trailStart);
           trail.lineTo(x, y);
-          trail.stroke({ width: 2, color: 0xffd700, alpha: 0.4 });
+          trail.stroke({ width: 2, color: 0xd9641f, alpha: 0.4 });
         });
         ticker.start();
         selectionTickerRef.current = ticker;
