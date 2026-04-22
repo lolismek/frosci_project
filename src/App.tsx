@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { GalaxyMap } from './components/GalaxyMap/GalaxyMap';
 import { HyperspaceView } from './components/HyperspaceView/HyperspaceView';
 import { Topbar } from './components/Topbar/Topbar';
@@ -9,7 +10,25 @@ import { RelativityPanel } from './components/Calculator/RelativityPanel';
 import { usePlanetStore } from './stores/usePlanetStore';
 import { sliderToSpeed, isTachyonic } from './utils/relativity';
 
+const STAGE_W = 1440;
+const STAGE_H = 900;
+
+function useStageScale() {
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const fit = () => {
+      const s = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+      setScale(s);
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, []);
+  return scale;
+}
+
 function App() {
+  const scale = useStageScale();
   const speedSlider = usePlanetStore((s) => s.speedSlider);
   const tachyonic = isTachyonic(sliderToSpeed(speedSlider));
 
@@ -18,64 +37,77 @@ function App() {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'var(--paper)',
-        color: 'var(--ink)',
+        background: '#000',
         overflow: 'hidden',
       }}
     >
-      {/* 2D Galaxy Map */}
       <div
         style={{
           position: 'absolute',
-          inset: 0,
-          opacity: tachyonic ? 0 : 1,
-          pointerEvents: tachyonic ? 'none' : 'auto',
-          transition: 'opacity 700ms ease',
+          left: '50%',
+          top: '50%',
+          width: STAGE_W,
+          height: STAGE_H,
+          transform: `translate(${-STAGE_W / 2 * scale}px, ${-STAGE_H / 2 * scale}px) scale(${scale})`,
+          transformOrigin: '0 0',
+          background: 'var(--paper)',
+          overflow: 'hidden',
+          boxShadow: '0 0 80px rgba(0,0,0,0.6)',
         }}
       >
-        <GalaxyMap />
-      </div>
-
-      {/* 3D Hyperspace View */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          opacity: tachyonic ? 1 : 0,
-          pointerEvents: tachyonic ? 'auto' : 'none',
-          transition: 'opacity 700ms ease',
-        }}
-      >
-        {tachyonic && <HyperspaceView />}
-      </div>
-
-      {/* Top bar — lockup + mode tabs + status */}
-      <Topbar />
-
-      {/* Floating sidebar cards */}
-      <SelectionCard />
-      <AtlasCard />
-      <RoutesCard />
-
-      {/* Bottom bar — speed slider (left) + relativity calculator (right) */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 22,
-          right: 22,
-          bottom: 22,
-          display: 'grid',
-          gridTemplateColumns: 'minmax(380px, 1fr) minmax(420px, 1fr)',
-          gap: 22,
-          pointerEvents: 'none',
-          zIndex: 10,
-        }}
-      >
-        <div className="card" style={{ padding: '14px 18px 10px', pointerEvents: 'auto' }}>
-          <SpeedSlider />
+        {/* Full-bleed map layer */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              opacity: tachyonic ? 0 : 1,
+              pointerEvents: tachyonic ? 'none' : 'auto',
+              transition: 'opacity 700ms ease',
+            }}
+          >
+            <GalaxyMap />
+          </div>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              opacity: tachyonic ? 1 : 0,
+              pointerEvents: tachyonic ? 'auto' : 'none',
+              transition: 'opacity 700ms ease',
+            }}
+          >
+            {tachyonic && <HyperspaceView />}
+          </div>
         </div>
-        <div style={{ pointerEvents: 'auto' }}>
-          <RelativityPanel />
+
+        <Topbar />
+        <SelectionCard />
+        <AtlasCard />
+        <RoutesCard />
+
+        {/* Bottom bar */}
+        <div
+          className="card"
+          style={{
+            position: 'absolute',
+            left: 22,
+            right: 22,
+            bottom: 18,
+            height: 220,
+            padding: '12px 18px',
+            display: 'grid',
+            gridTemplateColumns: '1.1fr 1.4fr',
+            gap: 18,
+            zIndex: 15,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <SpeedSlider />
+          </div>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            <RelativityPanel />
+          </div>
         </div>
       </div>
     </div>

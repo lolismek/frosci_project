@@ -3,7 +3,6 @@ import { Application, Container, Graphics, Text, TextStyle, Ticker } from 'pixi.
 import { getAllPlanets, getPlanetByName } from '../../utils/planets';
 import { usePlanetStore } from '../../stores/usePlanetStore';
 import { useRouteStore } from '../../stores/useRouteStore';
-import { REGION_DOT_COLORS } from '../../utils/constants';
 import { distanceLY } from '../../utils/coordinates';
 import type { Planet } from '../../types';
 import tradeRoutes from '../../data/trade-routes.json';
@@ -85,80 +84,34 @@ export function GalaxyMap() {
       world.x = cw / 2 - cx;
       world.y = ch / 2 - cy;
 
-      // --- Region rings ---
+      // --- Region rings — thin ink outlines, observatory style ---
       const regionLayer = new Container();
       world.addChild(regionLayer);
       const centerPx = gridToCanvas(GALAXY_CENTER_X, GALAXY_CENTER_Y);
       for (const region of regionsData as Region[]) {
-        const g = new Graphics();
-        const [r, gr, b, a] = parseRGBA(region.color);
         const outerR = region.outerRadius * PIXELS_PER_GRID;
-        const innerR = region.innerRadius * PIXELS_PER_GRID;
-        g.circle(centerPx.x, centerPx.y, outerR);
-        if (innerR > 0) {
-          g.cut();
-          g.circle(centerPx.x, centerPx.y, innerR);
-        }
-        g.fill({ color: (r << 16) | (gr << 8) | b, alpha: a });
-        regionLayer.addChild(g);
+        const ring = new Graphics();
+        ring.circle(centerPx.x, centerPx.y, outerR);
+        ring.stroke({ width: 0.8, color: 0xefe7d4, alpha: 0.12 });
+        regionLayer.addChild(ring);
 
-        // Region label
+        // Region label placed above the ring at a fixed angle
         const labelAngle = -Math.PI / 4;
-        const labelR = (outerR + innerR) / 2;
         const label = new Text({
-          text: region.name,
+          text: region.name.toUpperCase(),
           style: new TextStyle({
-            fontSize: 10,
+            fontSize: 9,
             fill: 0xefe7d4,
             fontFamily: 'JetBrains Mono, ui-monospace, monospace',
-            letterSpacing: 1.6,
+            letterSpacing: 2.4,
           }),
         });
-        label.alpha = 0.3;
-        label.anchor.set(0.5);
-        label.x = centerPx.x + Math.cos(labelAngle) * labelR;
-        label.y = centerPx.y + Math.sin(labelAngle) * labelR;
-        label.rotation = labelAngle;
+        label.alpha = 0.28;
+        label.anchor.set(0.5, 1);
+        label.x = centerPx.x + Math.cos(labelAngle) * outerR;
+        label.y = centerPx.y + Math.sin(labelAngle) * outerR;
+        label.rotation = labelAngle + Math.PI / 2;
         regionLayer.addChild(label);
-      }
-
-      // --- Grid ---
-      const gridLayer = new Container();
-      world.addChild(gridLayer);
-      const gridGfx = new Graphics();
-      gridGfx.setStrokeStyle({ width: 0.5, color: 0xefe7d4, alpha: 0.06 });
-      for (let i = 0; i <= 21; i++) {
-        gridGfx.moveTo(0, i * PIXELS_PER_GRID);
-        gridGfx.lineTo(21 * PIXELS_PER_GRID, i * PIXELS_PER_GRID);
-        gridGfx.moveTo(i * PIXELS_PER_GRID, 0);
-        gridGfx.lineTo(i * PIXELS_PER_GRID, 21 * PIXELS_PER_GRID);
-      }
-      gridGfx.stroke();
-      gridLayer.addChild(gridGfx);
-
-      // Grid labels
-      const gridLetters = 'CDEFGHIJKLMNOPQRSTU';
-      for (let i = 0; i < gridLetters.length; i++) {
-        const lbl = new Text({
-          text: gridLetters[i],
-          style: new TextStyle({ fontSize: 9, fill: 0xefe7d4, fontFamily: 'JetBrains Mono, ui-monospace, monospace' }),
-        });
-        lbl.alpha = 0.25;
-        lbl.anchor.set(0.5);
-        lbl.x = (i + 1.5) * PIXELS_PER_GRID;
-        lbl.y = -6;
-        gridLayer.addChild(lbl);
-      }
-      for (let i = 1; i <= 21; i++) {
-        const lbl = new Text({
-          text: String(i),
-          style: new TextStyle({ fontSize: 9, fill: 0xefe7d4, fontFamily: 'JetBrains Mono, ui-monospace, monospace' }),
-        });
-        lbl.alpha = 0.25;
-        lbl.anchor.set(0.5);
-        lbl.x = -10;
-        lbl.y = (i + 0.5) * PIXELS_PER_GRID;
-        gridLayer.addChild(lbl);
       }
 
       // --- Route layer ---
@@ -178,21 +131,21 @@ export function GalaxyMap() {
         container.eventMode = 'static';
         container.cursor = 'pointer';
 
-        // Dot
+        // Dot — ink-cream, opacity drops by tier
         const dot = new Graphics();
-        const color = REGION_DOT_COLORS[planet.Region] || 0xaaaaaa;
-        const size = planet.tier === 1 ? 4 : planet.tier === 2 ? 2.5 : planet.tier === 3 ? 1.5 : 1;
+        const size = planet.tier === 1 ? 2.6 : planet.tier === 2 ? 1.8 : planet.tier === 3 ? 1.2 : 0.8;
+        const alpha = planet.tier === 1 ? 1 : planet.tier === 2 ? 0.75 : planet.tier === 3 ? 0.5 : 0.3;
 
         if (planet.tier === 1) {
-          // Glow for tier 1
+          // Faint accent glow for prominent worlds only
           const glow = new Graphics();
           glow.circle(0, 0, size * 3);
-          glow.fill({ color, alpha: 0.15 });
+          glow.fill({ color: 0xd9641f, alpha: 0.08 });
           container.addChild(glow);
         }
 
         dot.circle(0, 0, size);
-        dot.fill({ color });
+        dot.fill({ color: 0xefe7d4, alpha });
         container.addChild(dot);
 
         // Label
@@ -569,8 +522,3 @@ function shouldShowLabel(tier: 1 | 2 | 3 | 4, zoom: number, maxTier: number): bo
   return zoom >= 5;
 }
 
-function parseRGBA(rgba: string): [number, number, number, number] {
-  const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),?\s*([\d.]+)?\)/);
-  if (!match) return [100, 100, 100, 0.1];
-  return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3]), parseFloat(match[4] ?? '1')];
-}
