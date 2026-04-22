@@ -147,47 +147,52 @@ export function speedToSlider(speedC: number): number {
 // --- Brane-bulk shortcut physics (Randall-Sundrum / Chung-Freese) ---
 
 /**
- * Compute the shortcut factor from the slider position.
- * Below the c-barrier: no shortcut (factor = 1). The ship is subluminal, stays on the brane.
- * Above the c-barrier: shortcut factor ramps logarithmically from 1 to ~1000.
- * This represents how much deeper into the bulk the ship cuts — larger factor = shorter chord.
+ * Convert the speed slider into a shortcut factor for the currently
+ * selected route. The route has its own fixed apparent-speed ceiling
+ * (`routeMax`) derived from the brane's extrinsic curvature between A
+ * and B — computed in braneField.ts. The slider interpolates the
+ * requested speed from 1.001c at the c-barrier up to that ceiling.
+ *
+ * Below the c-barrier: no shortcut (ship is subluminal, stays on
+ * the brane — pure special relativity).
+ *
+ * Above the c-barrier: 1.001 → routeMax over the superluminal half
+ * of the slider. A small easing exponent makes the low end feel
+ * responsive without sacrificing a smooth approach to the ceiling.
+ *
+ * If the route is essentially flat (routeMax ≤ 1.001) the ship can't
+ * shortcut at all — the function returns 1 regardless of slider.
  */
-export function sliderToShortcutFactor(value: number): number {
+export function sliderToShortcutFactor(value: number, routeMax: number): number {
   const C_BARRIER = 0.80;
   if (value <= C_BARRIER) return 1;
-  const t = (value - C_BARRIER) / (1 - C_BARRIER); // 0-1
-  // factor goes from 1 at barrier to 1000 at max slider
-  return Math.pow(10, t * 3);
+  if (routeMax <= 1.001) return 1;
+  const t = (value - C_BARRIER) / (1 - C_BARRIER); // 0-1 on the superluminal half
+  const eased = Math.pow(t, 1.3);
+  return 1.001 + (routeMax - 1.001) * eased;
 }
 
 /**
- * In brane-bulk cosmology (Randall-Sundrum / Chung-Freese), the brane is curved in
- * the bulk, so signals on the brane follow a longer arc while a chord through the
- * bulk cuts a shorter path. We take the user-selected distance as the BRANE arc
- * length and derive the bulk chord.
+ * In brane-bulk cosmology (Randall-Sundrum / Chung-Freese / Caldwell-
+ * Langlois), the brane is curved in the bulk, so signals on the brane
+ * follow a longer arc while a chord through the bulk cuts a shorter
+ * path. We take the user-selected distance as the BRANE arc length
+ * and derive the bulk chord from the route's shortcut factor.
  *
  *   chord        = braneLength / shortcutFactor
- *   travel time  = chord / c             (ship moves at c locally through the bulk)
- *   apparent v   = braneLength / travel time = shortcutFactor · c
+ *   travel time  = chord / c                (ship moves at c locally)
+ *   apparent v   = braneLength / travelTime = shortcutFactor · c
  *
- * A real RS bulk chord passes through AdS warped geometry, so the geometric "depth"
- * into the bulk doesn't equal the chord length. For the 3D visualization we expose a
- * `bulgeHeightGrid` that grows monotonically with log10(shortcutFactor), clamped for
- * display. This makes "more shortcut = deeper bulk" visually legible without
- * overclaiming geometric fidelity.
+ * The visible brane geometry is fixed (see braneField.ts) — this
+ * function just does the arithmetic once the slider has picked a
+ * shortcut factor for the chosen route.
  */
 export function calculateBraneBulkTravel(distanceLY: number, shortcutFactor: number): BraneBulkResult {
   const braneLength = distanceLY;
   const factor = Math.max(1, shortcutFactor);
-
   const chord = braneLength / factor;
   const travelTimeYears = chord; // chord (ly) / c (ly/yr) = years
   const apparentSpeedC = factor;
-
-  // Visualization: bulge amplitude proportional to log(factor).
-  // factor=1 → 0 bulge (flat brane, no shortcut)
-  // factor=1000 → bulge ~ 9 grid units
-  const bulgeHeightGrid = Math.min(15, 3 * Math.log10(factor));
 
   return {
     chordLY: chord,
@@ -195,6 +200,5 @@ export function calculateBraneBulkTravel(distanceLY: number, shortcutFactor: num
     shortcutFactor: factor,
     apparentSpeedC,
     travelTimeYears,
-    bulgeHeightGrid,
   };
 }

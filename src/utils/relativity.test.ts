@@ -149,21 +149,45 @@ describe('sliderToSpeed / speedToSlider', () => {
 
 describe('brane-bulk shortcut physics', () => {
   it('subluminal slider yields shortcut factor of 1 (no shortcut)', () => {
-    expect(sliderToShortcutFactor(0)).toBe(1);
-    expect(sliderToShortcutFactor(0.5)).toBe(1);
-    expect(sliderToShortcutFactor(0.80)).toBe(1);
+    expect(sliderToShortcutFactor(0, 100)).toBe(1);
+    expect(sliderToShortcutFactor(0.5, 100)).toBe(1);
+    expect(sliderToShortcutFactor(0.80, 100)).toBe(1);
   });
 
-  it('superluminal slider yields shortcut factor > 1', () => {
-    expect(sliderToShortcutFactor(0.85)).toBeGreaterThan(1);
-    expect(sliderToShortcutFactor(1.0)).toBeCloseTo(1000, -1);
+  it('superluminal slider is bounded by route-specific routeMax', () => {
+    expect(sliderToShortcutFactor(0.85, 100)).toBeGreaterThan(1);
+    expect(sliderToShortcutFactor(0.85, 100)).toBeLessThan(100);
+    expect(sliderToShortcutFactor(1.0, 100)).toBeCloseTo(100, -1);
   });
 
-  it('shortcut factor = 1 yields zero bulge / identical chord (no shortcut)', () => {
+  it('slider = max yields apparent speed = routeMax', () => {
+    expect(sliderToShortcutFactor(1.0, 42)).toBeCloseTo(42, -1);
+    expect(sliderToShortcutFactor(1.0, 500)).toBeCloseTo(500, -1);
+  });
+
+  it('route with higher max ceiling gives higher speed at same slider', () => {
+    const slow = sliderToShortcutFactor(0.95, 20);
+    const fast = sliderToShortcutFactor(0.95, 500);
+    expect(fast).toBeGreaterThan(slow);
+  });
+
+  it('flat route (routeMax ≈ 1) gives no shortcut at any slider', () => {
+    expect(sliderToShortcutFactor(0.9, 1.001)).toBe(1);
+    expect(sliderToShortcutFactor(1.0, 1.001)).toBe(1);
+  });
+
+  it('shortcut factor increases monotonically with slider on superluminal half', () => {
+    const a = sliderToShortcutFactor(0.82, 100);
+    const b = sliderToShortcutFactor(0.90, 100);
+    const c = sliderToShortcutFactor(0.98, 100);
+    expect(a).toBeLessThan(b);
+    expect(b).toBeLessThan(c);
+  });
+
+  it('shortcut factor = 1 yields identical chord (no shortcut)', () => {
     const r = calculateBraneBulkTravel(10000, 1);
     expect(r.chordLY).toBeCloseTo(10000, 0);
     expect(r.braneLengthLY).toBe(10000);
-    expect(r.bulgeHeightGrid).toBeCloseTo(0, 3);
     expect(r.apparentSpeedC).toBeCloseTo(1, 3);
   });
 
@@ -182,14 +206,6 @@ describe('brane-bulk shortcut physics', () => {
   it('apparent speed equals shortcut factor * c', () => {
     const r = calculateBraneBulkTravel(10000, 50);
     expect(r.apparentSpeedC).toBeCloseTo(50, 0);
-  });
-
-  it('visual bulge height is monotone in shortcut factor', () => {
-    const r1 = calculateBraneBulkTravel(10000, 2);
-    const r2 = calculateBraneBulkTravel(10000, 20);
-    const r3 = calculateBraneBulkTravel(10000, 500);
-    expect(r2.bulgeHeightGrid).toBeGreaterThan(r1.bulgeHeightGrid);
-    expect(r3.bulgeHeightGrid).toBeGreaterThan(r2.bulgeHeightGrid);
   });
 });
 

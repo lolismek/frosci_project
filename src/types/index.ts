@@ -76,5 +76,4 @@ export interface BraneBulkResult {
   shortcutFactor: number;
   apparentSpeedC: number;
   travelTimeYears: number;
-  bulgeHeightGrid: number;
 }
