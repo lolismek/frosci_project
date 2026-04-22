@@ -47,7 +47,7 @@ export function HyperspaceView() {
   const tachyonicActive = interpretationMode === 'tachyonic' && tachyonicResult !== null;
   const braneBulkActive = interpretationMode === 'brane-bulk' && braneBulkResult !== null;
 
-  const arcHeight = tachyonicActive ? tachyonicResult!.arcHeight : 0;
+  const ellipseSemiMinor = tachyonicActive ? tachyonicResult!.ellipseSemiMinorGrid : 0;
 
   // Planet surface heights on the wrinkled brane. In tachyonic / subluminal
   // mode the plane is flat, so this is zero.
@@ -55,7 +55,7 @@ export function HyperspaceView() {
   const aHeight = showWrinkledBrane ? braneHeight(planetA!.trueX, planetA!.trueY) : 0;
   const bHeight = showWrinkledBrane ? braneHeight(planetB!.trueX, planetB!.trueY) : 0;
 
-  const effectiveHeight = tachyonicActive ? arcHeight : (braneBulkActive ? BRANE_BULK_CAMERA_LIFT : 0);
+  const effectiveHeight = tachyonicActive ? ellipseSemiMinor : (braneBulkActive ? BRANE_BULK_CAMERA_LIFT : 0);
 
   const targetX = planetA && planetB ? (planetA.trueX + planetB.trueX) / 2 : GALAXY_SIZE / 2;
   const targetZ = planetA && planetB ? (planetA.trueY + planetB.trueY) / 2 : GALAXY_SIZE / 2;
@@ -85,11 +85,13 @@ export function HyperspaceView() {
         </mesh>
       )}
 
-      {/* Vertical axis label (only used for the tachyonic imaginary dimension) */}
-      {tachyonicActive && (
+      {/* Vertical axis — the imaginary-rapidity axis for the tachyonic diagram.
+          Labeled to make clear this is a diagram of the Wick rotation, not a
+          spatial dimension the ship traverses. */}
+      {tachyonicActive && ellipseSemiMinor > 0 && (
         <>
           <Line
-            points={[[targetX, 0, targetZ], [targetX, arcHeight + 2, targetZ]]}
+            points={[[targetX, 0, targetZ], [targetX, ellipseSemiMinor + 2, targetZ]]}
             color="#4FC3F7"
             lineWidth={1}
             transparent
@@ -99,7 +101,7 @@ export function HyperspaceView() {
             gapSize={0.2}
           />
           <Html
-            position={[targetX, arcHeight + 2.5, targetZ]}
+            position={[targetX, ellipseSemiMinor + 2.5, targetZ]}
             center
             style={{
               color: '#4FC3F7',
@@ -110,7 +112,7 @@ export function HyperspaceView() {
               pointerEvents: 'none',
             }}
           >
-            Imaginary Dimension
+            Imaginary Rapidity Axis
           </Html>
         </>
       )}
@@ -143,15 +145,13 @@ export function HyperspaceView() {
             endX={planetB.trueX}
             endZ={planetB.trueY}
             endY={bHeight}
-            arcHeight={0}
-            animSpeed={0.6}
+            sliderValue={speedSlider}
             shape="chord"
-            roundTrip
           />
         </>
       )}
 
-      {/* --- TACHYONIC MODE (legacy, preserved via toggle) --- */}
+      {/* --- TACHYONIC MODE --- */}
       {!braneBulkActive && planetA && planetB && (
         <Line
           points={[
@@ -174,19 +174,17 @@ export function HyperspaceView() {
             startZ={planetA.trueY}
             endX={planetB.trueX}
             endZ={planetB.trueY}
-            arcHeight={arcHeight}
+            semiMinor={ellipseSemiMinor}
             color="#4FC3F7"
-            shape="sequential"
           />
           <ShipAnimation
             startX={planetA.trueX}
             startZ={planetA.trueY}
             endX={planetB.trueX}
             endZ={planetB.trueY}
-            arcHeight={arcHeight}
-            animSpeed={0.05 + speedSlider * 0.55}
-            shape="sequential"
-            roundTrip
+            semiMinor={ellipseSemiMinor}
+            sliderValue={speedSlider}
+            shape="ellipse"
           />
         </>
       )}

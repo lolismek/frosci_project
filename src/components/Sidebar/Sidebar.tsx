@@ -3,8 +3,23 @@ import { PlanetSearch } from './PlanetSearch';
 import { PlanetFilter } from './PlanetFilter';
 import { RouteList } from './RouteList';
 
-export function Sidebar() {
+interface SidebarProps {
+  /** When true, the sidebar auto-collapses (e.g. entering tachyonic mode
+   *  where the 3D canvas + tachyonic panel need the horizontal real
+   *  estate). The user can still re-open it manually. */
+  autoCollapse?: boolean;
+}
+
+export function Sidebar({ autoCollapse = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  // React "information from previous renders" pattern (setState during render
+  // is legal when guarded on a prop transition). Cheaper and simpler than
+  // lifting `collapsed` up to App just to intercept the mode toggle.
+  const [prevAuto, setPrevAuto] = useState(autoCollapse);
+  if (prevAuto !== autoCollapse) {
+    setPrevAuto(autoCollapse);
+    if (autoCollapse) setCollapsed(true);
+  }
 
   return (
     <div

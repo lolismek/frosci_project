@@ -58,15 +58,68 @@ Standard special relativity:
 - **Key insight**: even at 0.9999c, a trip across the galaxy takes 565+ years for the traveler and 40,000+ years for everyone at home
 
 ### Tachyonic (v > c) — Speculative
-When v > c, gamma becomes imaginary: `gamma = i / sqrt(v^2/c^2 - 1)`
 
-Length contraction produces a **complex distance** with real and imaginary components:
-- **Real component**: displacement through normal space (the galaxy plane)
-- **Imaginary component**: `L * sqrt(v^2/c^2 - 1)` — displacement through a perpendicular "hyperspace" dimension
+**The fiction we're using.** We imagine that entering Star Wars
+hyperspace converts the ship into **tachyonic matter** — hypothetical
+particles with imaginary rest mass (`m₀ = i·μ`) that were "born" above
+c and can't slow below it, the same way ordinary matter can't speed up
+to it. This is a Feinberg-style thought experiment, not a known
+physical process: no one has detected tachyonic matter, no mechanism is
+known for turning ordinary matter into it, and this mode does **not**
+explain *how* a ship gets fast — only what special relativity says
+about things that already are.
 
-This interpretation follows the work of Erasmo Recami (Extended Relativity, 1970s-2000s) and Elizabeth Rauscher (Complex 8-space), who formally modeled superluminal Lorentz transformations as rotations in complex spacetime. The imaginary component of the distance maps naturally onto the science fiction concept of hyperspace — a separate dimensional realm where the speed-of-light barrier doesn't apply.
+Under that premise, the rest-frame travel time is simply `t = L/v`.
+Unlike the brane-bulk mode, **there is no local-c shortcut** — this
+interpretation accepts real FTL and pays for it in imaginary proper
+time, frame dependence, and broken causality.
 
-At very high speeds (Star Wars implies ~10^9 c), nearly 100% of the journey occurs through the imaginary dimension, which is exactly what hyperspace looks like in the films.
+**The ship stays in real 3-space at every v.** Crossing c is a binary
+threshold — the worldline goes from timelike to spacelike — not a
+gradient. The 3D half-ellipse in the hyperspace view is a **chart**
+whose axes are the real displacement `L` and the magnitude of the
+imaginary part of the Lorentz-contracted length; the ship's worldline
+never occupies it. The arc looks flat just above c because
+`√(v²/c²−1)` is small there, not because the ship is "partly in real
+space."
+
+The "imaginary numbers" come from analytically continuing special
+relativity past v = c:
+
+- **Lorentz factor.** `γ = 1/√(1 − v²/c²) = −i / √(v²/c² − 1)` — γ becomes
+  imaginary. We surface the magnitude `|γ| = 1/√(v²/c² − 1)`.
+- **Rapidity Wick rotation.** Rapidity is `ζ = atanh(v/c)`. The principal
+  branch for v > c gives `ζ = ½ ln|(v+c)/(v−c)| + i·π/2`. The `+iπ/2` is
+  a **quarter-turn in the complex plane** — the mechanism by which the
+  time and space axes swap roles in a superluminal boost (Recami 1986,
+  §6 on imaginary-angle rotations).
+- **Imaginary proper time.** `τ = t/γ = i · t · √(v²/c²−1)`. The
+  magnitude `|τ| = t · √(v²/c²−1)` is what the formula returns, but it
+  has no operational meaning — tachyons have no rest frame (Feinberg
+  1967).
+- **Imaginary contracted length.** `L · √(v²/c²−1)` — the imaginary part
+  of the Lorentz-contracted length. **Not a distance the ship covers.**
+  The ship covers `L` of real space at speed `v`.
+
+The 3D view shows a **half-ellipse** with semi-major `L/2` along the
+A→B line and semi-minor `L · √(v²/c²−1) / 2` along the world-up
+(imaginary) axis. This is a **diagram of the rapidity Wick rotation**,
+not a trajectory — Recami himself draws straight spacelike worldlines
+outside the light cone. The curve flattens to the A→B line as v → c⁺
+and rises sharply at high v, mirroring the continuous quarter-turn of
+ζ's imaginary component as `v/c` grows.
+
+**Caveats (surfaced in the panel):**
+
+- *Frame dependence.* The Bilaniuk–Sudarshan reinterpretation principle
+  (1962) says a tachyon of speed v in one frame appears as an
+  antiparticle of speed c²/v in another, with emission and absorption
+  swapped. The A→B labels are frame-dependent.
+- *Causality.* Tolman's antitelephone closes — two FTL observers can
+  exchange signals along a timelike loop. Recami's framework re-labels
+  rather than resolves this.
+- *No evidence.* OPERA's 2011 anomaly was retracted in 2012; tachyonic
+  fields in QFT describe vacuum instabilities, not FTL particles.
 
 ## Data Sources
 
@@ -135,9 +188,21 @@ src/
 
 ## References
 
+### Tachyonic
 - Feinberg, G. (1967). "Possibility of Faster-Than-Light Particles." *Physical Review*, 159(5), 1089-1105.
 - Bilaniuk, O.M.P., Deshpande, V.K., Sudarshan, E.C.G. (1962). "'Meta' Relativity." *American Journal of Physics*, 30, 718.
 - Recami, E. (1986). "Classical Tachyons and Possible Applications." *Rivista del Nuovo Cimento*, 9(6), 1-178.
+- Recami, E. (2001). "Superluminal motions? A bird's-eye view of the experimental situation." *Foundations of Physics*, 31, 1119. [arXiv:physics/0101108]
+- Recami, E. (2008). "Classical tachyons and applications: A review." [arXiv:0804.1502]
+- Adam, T. et al. (OPERA collaboration) (2012). "Measurement of the neutrino velocity with the OPERA detector in the CNGS beam using the 2012 dedicated data." *JHEP* 10 (2012) 093. (retraction of the 2011 anomaly)
+- Rauscher, E. A., Targ, R. (2001). "The Speed of Thought: Investigation of a Complex Space-Time Metric..." *Journal of Scientific Exploration*, 15, 331.
+
+### Brane-bulk
+- Randall, L., Sundrum, R. (1999). "Large Mass Hierarchy from a Small Extra Dimension." *Physical Review Letters*, 83, 3370.
+- Chung, D.J.H., Freese, K. (2000). "Can geodesics in extra dimensions solve the cosmological horizon problem?" *Physical Review D*, 62, 063513.
+- Caldwell, R.R., Langlois, D. (2001). "Shortcuts in the fifth dimension." *Physics Letters B*, 511, 129.
+
+### Dataset
 - Wallace, D. & Fry, J. (2009). *Star Wars: The Essential Atlas*. Del Rey.
 
 ## License

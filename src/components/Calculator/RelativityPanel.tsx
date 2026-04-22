@@ -420,21 +420,96 @@ export function RelativityPanel() {
       {/* TACHYONIC MODE */}
       {showTachyonic && tachyonicResult && (
         <>
-          <div className="bg-sw-blue/5 border border-sw-blue/20 rounded px-3 py-2 flex justify-between items-center">
-            <span className="text-white/40 text-xs">Lorentz Factor (γ)</span>
-            <span className="text-sw-blue font-mono text-lg font-bold">
-              {tachyonicResult.gammaImaginary.toFixed(3)}i
-            </span>
+          <div className="bg-sw-blue/5 border border-sw-blue/20 rounded px-3 py-2">
+            <p className="text-sw-blue/80 text-[10px] uppercase tracking-wider mb-1">
+              The Fiction
+            </p>
+            <p className="text-white/55 text-[11px] leading-relaxed">
+              We imagine that entering Star Wars hyperspace converts the ship
+              into tachyonic matter — hypothetical particles with imaginary
+              rest mass that were "born" above c and can't slow below it, the
+              same way ordinary matter can't speed up to it. With that
+              premise, the numbers below follow from applying special
+              relativity past v = c.
+            </p>
           </div>
 
+          {/* Travel time + local speed — same slot as brane-bulk's. */}
+          <div className="bg-white/5 rounded px-3 py-3 text-center">
+            <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+              Travel Time (rest frame, t = L/v)
+            </p>
+            <p className="text-sw-blue font-mono text-lg font-bold">
+              {formatYears(tachyonicResult.restFrameTimeYears)}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/5 rounded px-3 py-3 text-center">
+              <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+                Local Speed (= apparent)
+              </p>
+              <p className="text-sw-blue font-mono text-sm font-bold">
+                {formatSpeed(speed)}
+              </p>
+            </div>
+            <div className="bg-sw-blue/5 rounded px-3 py-3 text-center border border-sw-blue/10">
+              <p className="text-sw-blue/60 text-[10px] uppercase tracking-wider mb-1">
+                |γ| (magnitude)
+              </p>
+              <p className="text-sw-blue font-mono text-sm font-bold">
+                {tachyonicResult.gammaImagMagnitude.toFixed(3)}
+                <span className="text-sw-blue/60"> · i</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Rapidity decomposition + Argand quarter-turn diagram. */}
+          <div className="bg-white/5 rounded px-3 py-3">
+            <div className="flex justify-between items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+                  Rapidity ζ = atanh(v/c)
+                </p>
+                <p className="text-sw-blue font-mono text-sm">
+                  ζ = {tachyonicResult.rapidityReal.toFixed(3)}
+                  <span className="text-sw-blue/70"> + (π/2) i</span>
+                </p>
+                <p className="text-white/40 text-[10px] mt-1 leading-snug">
+                  The +(π/2)i is the Wick quarter-turn that makes v&gt;c
+                  coherent: space and time axes swap. The arc in the 3D
+                  view is this rotation drawn in the Argand plane — not
+                  a physical trajectory.
+                </p>
+              </div>
+              <ArgandDiagram realPart={tachyonicResult.rapidityReal} />
+            </div>
+          </div>
+
+          {/* Proper time — explicitly labeled formal / nonoperational. */}
+          <div className="bg-white/5 rounded px-3 py-3 text-center">
+            <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+              Imaginary Proper Time |τ| = t·√(v²/c²−1)
+            </p>
+            <p className="text-sw-blue font-mono text-sm font-bold">
+              {formatYears(tachyonicResult.imagProperTimeYears)} · i
+            </p>
+            <p className="text-white/35 text-[10px] mt-1 leading-snug">
+              Formal only — tachyons have no rest frame (Feinberg 1967),
+              so τ has no operational meaning. Shown because it's the
+              number the formula spits out.
+            </p>
+          </div>
+
+          {/* Length decomposition — relabeled to say "artifact", not "path". */}
           <div>
             <p className="text-white/40 text-[10px] uppercase tracking-wider mb-2">
-              Distance Decomposition
+              Length Decomposition (artifact of γ being imaginary)
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-white/5 rounded px-3 py-3 text-center">
                 <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
-                  Real (Normal Space)
+                  Real Displacement L
                 </p>
                 <p className="text-sw-gold font-mono text-sm font-bold">
                   {Math.round(tachyonicResult.realDistance).toLocaleString()} ly
@@ -442,46 +517,66 @@ export function RelativityPanel() {
               </div>
               <div className="bg-sw-blue/5 rounded px-3 py-3 text-center border border-sw-blue/10">
                 <p className="text-sw-blue/60 text-[10px] uppercase tracking-wider mb-1">
-                  Imaginary (Hyperspace)
+                  Imag. Contracted L·√(v²/c²−1)
                 </p>
                 <p className="text-sw-blue font-mono text-sm font-bold">
-                  {Math.round(tachyonicResult.imaginaryDistance).toLocaleString()}i ly
+                  {Math.round(tachyonicResult.imagContractedLength).toLocaleString()}
+                  <span className="text-sw-blue/70"> · i</span> ly
                 </p>
               </div>
             </div>
+            <p className="text-white/35 text-[10px] mt-2 leading-snug">
+              Neither component is a distance the ship covers — the ship
+              covers L of real space at speed v. These are the real and
+              imaginary parts of the Lorentz-contracted length when γ is
+              imaginary.
+            </p>
           </div>
 
-          <div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-white/40">Hyperspace Fraction</span>
-              <span className="text-sw-blue font-mono">
-                {(tachyonicResult.hyperspaceFraction * 100).toFixed(1)}%
-              </span>
-            </div>
-            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-sw-gold to-sw-blue rounded-full transition-all duration-300"
-                style={{ width: `${tachyonicResult.hyperspaceFraction * 100}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] text-white/20 mt-0.5">
-              <span>Normal Space</span>
-              <span>Hyperspace</span>
-            </div>
-          </div>
-
+          {/* Caveat box — no mechanism, Bilaniuk-Sudarshan, causality, OPERA. */}
           <div className="bg-sw-blue/5 border border-sw-blue/10 rounded px-3 py-2">
             <p className="text-sw-blue/80 text-[10px] uppercase tracking-wider mb-1">
-              Tachyonic Physics (Recami)
+              Limitations of This Picture
             </p>
-            <p className="text-white/50 text-xs leading-relaxed">
-              At {formatSpeed(speed)}, γ becomes imaginary ({tachyonicResult.gammaImaginary.toFixed(3)}i).
-              Following Recami's Extended Relativity and Rauscher's complex 8-space,
-              the distance splits into real + imaginary components — the ship
-              travels {(tachyonicResult.hyperspaceFraction * 100).toFixed(0)}% through
-              a perpendicular "hyperspace" axis. Minority interpretation; not
-              observationally confirmed.
-            </p>
+            <ul className="text-white/55 text-[11px] leading-relaxed list-disc pl-4 space-y-1">
+              <li>
+                <span className="text-white/75">No mechanism.</span> Unlike
+                brane-bulk, this mode does not explain <em>how</em> a ship
+                gets fast. It describes what SR says about things that are
+                already FTL. The "convert ship to tachyonic matter" premise
+                is fiction — no one has detected tachyonic matter and no
+                known process turns ordinary matter into it.
+              </li>
+              <li>
+                <span className="text-white/75">The arc is a chart, not a
+                path.</span> The ship's worldline stays in real 3-space at
+                every v &gt; c — crossing c is a binary threshold, not a
+                gradient. The ellipse axes plot the real and imaginary parts
+                of the Lorentz-contracted length side-by-side; the ship
+                never occupies the arc.
+              </li>
+              <li>
+                <span className="text-white/75">Frame dependence.</span>{' '}
+                By the Bilaniuk–Sudarshan reinterpretation principle (Am. J.
+                Phys. 30, 718, 1962), a tachyon of speed v in one frame
+                appears as an antiparticle of speed c²/v in another, with
+                emission and absorption swapped. The A→B labels on the
+                diagram are frame-dependent, not invariant.
+              </li>
+              <li>
+                <span className="text-white/75">Causality.</span> Tolman's
+                antitelephone still closes (two FTL observers can exchange
+                signals along a timelike loop). Recami's extended relativity
+                re-labels rather than resolves this; most relativists do not
+                accept the patch.
+              </li>
+              <li>
+                <span className="text-white/75">No evidence.</span> OPERA
+                2011 was retracted in 2012 (Adam et al., JHEP 10 (2012) 093);
+                tachyonic fields in QFT (Sen 1998, hep-th/9805170) describe
+                vacuum instabilities, not FTL particles.
+              </li>
+            </ul>
           </div>
 
           {matchingJourney && matchingJourney.canonTravelTime && (
@@ -494,8 +589,8 @@ export function RelativityPanel() {
                 {matchingJourney.canonTravelTime}
               </p>
               <p className="text-white/70 text-xs">
-                <span className="text-white/40">Effective travel: </span>
-                {(tachyonicResult.hyperspaceFraction * 100).toFixed(0)}% through hyperspace
+                <span className="text-white/40">At {formatSpeed(speed)}: </span>
+                {formatYears(tachyonicResult.restFrameTimeYears)}
               </p>
             </div>
           )}
@@ -516,6 +611,42 @@ function getAgeStatus(age: number): string {
   if (age < 100) return 'Elderly';
   if (age < 120) return 'Dead';
   return 'Long dead';
+}
+
+/**
+ * Small 56×56 Argand-plane sketch: real axis horizontal, imaginary axis
+ * vertical, rapidity shown as an arrow from origin to (ζ_real, π/2).
+ * Visualizes the Wick quarter-turn without depending on specific ζ_real
+ * magnitude — we normalize the horizontal reach to the box.
+ */
+function ArgandDiagram({ realPart }: { realPart: number }) {
+  const size = 56;
+  const pad = 6;
+  const axisHalf = size / 2 - pad;
+  // Cap the real arm visually at ±axisHalf; the imaginary arm is exactly π/2.
+  const realNorm = Math.max(-1, Math.min(1, realPart / 3));
+  const arrowEndX = size / 2 + realNorm * axisHalf;
+  const arrowEndY = pad; // top of the box = +imaginary direction
+  const cx = size / 2;
+  const cy = size / 2;
+  return (
+    <svg width={size} height={size} className="shrink-0">
+      <line x1={pad} y1={cy} x2={size - pad} y2={cy} stroke="rgba(255,255,255,0.25)" strokeWidth={1} />
+      <line x1={cx} y1={pad} x2={cx} y2={size - pad} stroke="rgba(255,255,255,0.25)" strokeWidth={1} />
+      <text x={size - pad - 1} y={cy - 2} fontSize="7" fill="rgba(255,255,255,0.4)" textAnchor="end">Re</text>
+      <text x={cx + 2} y={pad + 6} fontSize="7" fill="rgba(255,255,255,0.4)">Im</text>
+      <line
+        x1={cx}
+        y1={cy}
+        x2={arrowEndX}
+        y2={arrowEndY}
+        stroke="#4FC3F7"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+      <circle cx={arrowEndX} cy={arrowEndY} r={2} fill="#4FC3F7" />
+    </svg>
+  );
 }
 
 function getHumanComparison(traveler: number, home: number): string {

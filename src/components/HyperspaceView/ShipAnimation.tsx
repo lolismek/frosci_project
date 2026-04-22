@@ -1,80 +1,106 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { CubicBezierCurve3, Vector3, Mesh, LineCurve3 } from 'three';
+import { Vector3, Mesh, LineCurve3, Curve, MeshStandardMaterial } from 'three';
+import { HalfEllipseCurve } from './ellipseCurve';
 
 interface ShipAnimationProps {
   startX: number;
   startZ: number;
   endX: number;
   endZ: number;
-  arcHeight: number;
-  animSpeed: number;
-  /** Y-offset of the start endpoint (e.g. brane-surface height at A). */
+  /** Y of the start endpoint (e.g. brane-surface height at A). */
   startY?: number;
-  /** Y-offset of the end endpoint (e.g. brane-surface height at B). */
+  /** Y of the end endpoint (e.g. brane-surface height at B). */
   endY?: number;
-  /** 'sequential' = sharp ascent, plateau, sharp descent.
-   *  'smooth' = symmetric bulge.
-   *  'chord' = straight line (brane-bulk chord through bulk). */
-  shape?: 'sequential' | 'smooth' | 'chord';
-  /** Ping-pong back and forth vs one-way loop. */
-  roundTrip?: boolean;
+  /** Ellipse semi-minor axis (grid units). Ignored for 'chord' shape. */
+  semiMinor?: number;
+  /** 0..1 slider value — drives ship speed uniformly across modes. */
+  sliderValue: number;
+  /** 'ellipse' = tachyonic half-ellipse diagram.
+   *  'chord'   = brane-bulk straight chord. */
+  shape: 'ellipse' | 'chord';
 }
 
+const TRANSIT_SECONDS_AT_MIN_SLIDER = 8;
+const TRANSIT_SECONDS_AT_MAX_SLIDER = 1.6;
+const REST_SECONDS = 0.6;
+const FADE_SECONDS = 0.25;
+
+/**
+ * One-way warp loop: ship fades in at A, rides the curve to B, fades
+ * out, rests briefly, repeats. No ping-pong — a return sweep would
+ * imply the journey runs in reverse, which doesn't match either mode's
+ * physics story.
+ */
 export function ShipAnimation({
-  startX, startZ, endX, endZ, arcHeight, animSpeed,
+  startX, startZ, endX, endZ,
   startY = 0, endY = 0,
-  shape = 'sequential', roundTrip = true,
+  semiMinor = 0, sliderValue, shape,
 }: ShipAnimationProps) {
   const meshRef = useRef<Mesh>(null);
-  const progressRef = useRef(0);
-  const directionRef = useRef(1);
+  const materialRef = useRef<MeshStandardMaterial>(null);
+  const phaseRef = useRef(0);
 
-  const curve = useMemo(() => {
-    const start = new Vector3(startX, startY, startZ);
-    const end = new Vector3(endX, endY, endZ);
-
+  const curve: Curve<Vector3> = useMemo(() => {
     if (shape === 'chord') {
-      return new LineCurve3(start, end);
+      return new LineCurve3(
+        new Vector3(startX, startY, startZ),
+        new Vector3(endX, endY, endZ),
+      );
     }
+    return new HalfEllipseCurve(startX, startZ, endX, endZ, semiMinor);
+  }, [shape, startX, startZ, endX, endZ, startY, endY, semiMinor]);
 
-    const dx = endX - startX;
-    const dz = endZ - startZ;
-    const t1 = shape === 'sequential' ? 0.08 : 0.25;
-    const t2 = shape === 'sequential' ? 0.92 : 0.75;
-    const ctrl1 = new Vector3(startX + dx * t1, arcHeight, startZ + dz * t1);
-    const ctrl2 = new Vector3(startX + dx * t2, arcHeight, startZ + dz * t2);
-    return new CubicBezierCurve3(start, ctrl1, ctrl2, end);
-  }, [startX, startZ, endX, endZ, arcHeight, startY, endY, shape]);
+  const transitSeconds = useMemo(() => {
+    const t = Math.max(0, Math.min(1, sliderValue));
+    return TRANSIT_SECONDS_AT_MIN_SLIDER +
+      (TRANSIT_SECONDS_AT_MAX_SLIDER - TRANSIT_SECONDS_AT_MIN_SLIDER) * t;
+  }, [sliderValue]);
 
   useFrame((_, delta) => {
-    if (!meshRef.current) return;
-    progressRef.current += directionRef.current * delta * animSpeed * 0.15;
+    if (!meshRef.current || !materialRef.current) return;
 
-    if (roundTrip) {
-      if (progressRef.current >= 1) {
-        progressRef.current = 1;
-        directionRef.current = -1;
-      } else if (progressRef.current <= 0) {
-        progressRef.current = 0;
-        directionRef.current = 1;
+    const cycle = transitSeconds + REST_SECONDS;
+    phaseRef.current = (phaseRef.current + delta / cycle) % 1;
+    const phaseSeconds = phaseRef.current * cycle;
+
+    let t: number;
+    let opacity: number;
+    if (phaseSeconds < transitSeconds) {
+      t = phaseSeconds / transitSeconds;
+      if (phaseSeconds < FADE_SECONDS) {
+        opacity = phaseSeconds / FADE_SECONDS;
+      } else if (phaseSeconds > transitSeconds - FADE_SECONDS) {
+        opacity = (transitSeconds - phaseSeconds) / FADE_SECONDS;
+      } else {
+        opacity = 1;
       }
     } else {
-      if (progressRef.current > 1) progressRef.current -= 1;
+      t = 1;
+      opacity = 0;
     }
 
-    const pos = curve.getPointAt(progressRef.current);
-    const tangent = curve.getTangentAt(progressRef.current);
+    const pos = curve.getPointAt(t);
+    const tangent = curve.getTangentAt(t);
     meshRef.current.position.copy(pos);
     meshRef.current.lookAt(pos.clone().add(tangent));
+    materialRef.current.opacity = opacity;
+    materialRef.current.emissiveIntensity = 1.5 * opacity;
   });
 
-  if (shape !== 'chord' && arcHeight <= 0) return null;
+  if (shape === 'ellipse' && semiMinor <= 0) return null;
 
   return (
     <mesh ref={meshRef}>
       <coneGeometry args={[0.15, 0.5, 6]} />
-      <meshStandardMaterial color="#ffffff" emissive="#88ccff" emissiveIntensity={1.5} />
+      <meshStandardMaterial
+        ref={materialRef}
+        color="#ffffff"
+        emissive="#88ccff"
+        emissiveIntensity={1.5}
+        transparent
+        opacity={0}
+      />
     </mesh>
   );
 }
