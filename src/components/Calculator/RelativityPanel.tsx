@@ -67,7 +67,7 @@ export function RelativityPanel() {
 
   const roundTrips = useMemo(() => {
     if (!distance || speed <= 0 || tachyonic) return [];
-    return calculateRoundTrips(distance, speed, startAge, 10);
+    return calculateRoundTrips(distance, speed, startAge, 7);
   }, [distance, speed, startAge, tachyonic]);
 
   const matchingJourney = useMemo(() => {

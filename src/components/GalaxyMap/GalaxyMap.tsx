@@ -4,6 +4,7 @@ import { getAllPlanets, getPlanetByName } from '../../utils/planets';
 import { usePlanetStore } from '../../stores/usePlanetStore';
 import { useRouteStore } from '../../stores/useRouteStore';
 import { REGION_DOT_COLORS } from '../../utils/constants';
+import { distanceLY } from '../../utils/coordinates';
 import type { Planet } from '../../types';
 import tradeRoutes from '../../data/trade-routes.json';
 import regionsData from '../../data/regions.json';
@@ -335,8 +336,8 @@ export function GalaxyMap() {
       line.stroke({ width: 1.5, color: 0xffd700, alpha: 0.6 });
       layer.addChild(line);
 
-      // Distance label
-      const dist = Math.sqrt((a.trueX - b.trueX) ** 2 + (a.trueY - b.trueY) ** 2) * 5000;
+      // Distance label (ly, via the shared coordinate util)
+      const dist = distanceLY(a, b);
       const midX = (pa.x + pb.x) / 2;
       const midY = (pa.y + pb.y) / 2;
       const distLabel = new Text({
@@ -354,49 +355,50 @@ export function GalaxyMap() {
       layer.addChild(distLabel);
 
       // --- Starship animation along selection path ---
-      const dx = pb.x - pa.x;
-      const dy = pb.y - pa.y;
-      const angle = Math.atan2(dy, dx);
+      // Suppressed when a route is active: the route-layer ticker already
+      // animates a ship along the full route, and for 2-planet routes both
+      // animations would overlap exactly.
+      if (!activeRouteId) {
+        const dx = pb.x - pa.x;
+        const dy = pb.y - pa.y;
+        const angle = Math.atan2(dy, dx);
 
-      // Ship triangle
-      const ship = new Graphics();
-      ship.moveTo(6, 0);
-      ship.lineTo(-4, -3.5);
-      ship.lineTo(-2, 0);
-      ship.lineTo(-4, 3.5);
-      ship.closePath();
-      ship.fill({ color: 0xffffff });
-      ship.rotation = angle;
-      layer.addChild(ship);
+        const ship = new Graphics();
+        ship.moveTo(6, 0);
+        ship.lineTo(-4, -3.5);
+        ship.lineTo(-2, 0);
+        ship.lineTo(-4, 3.5);
+        ship.closePath();
+        ship.fill({ color: 0xffffff });
+        ship.rotation = angle;
+        layer.addChild(ship);
 
-      // Trail
-      const trail = new Graphics();
-      layer.addChild(trail);
+        const trail = new Graphics();
+        layer.addChild(trail);
 
-      let progress = 0;
+        let progress = 0;
 
-      const ticker = new Ticker();
-      ticker.add((tick) => {
-        // Animation speed scales with the speed slider (0.05 at low, 0.6 at high)
-        const animSpeed = 0.05 + speedSliderRef.current * 0.55;
-        progress += (tick.deltaMS / 1000) * animSpeed;
-        if (progress > 1) progress -= 1;
+        const ticker = new Ticker();
+        ticker.add((tick) => {
+          const animSpeed = 0.05 + speedSliderRef.current * 0.55;
+          progress += (tick.deltaMS / 1000) * animSpeed;
+          if (progress > 1) progress -= 1;
 
-        const x = pa.x + dx * progress;
-        const y = pa.y + dy * progress;
-        ship.x = x;
-        ship.y = y;
+          const x = pa.x + dx * progress;
+          const y = pa.y + dy * progress;
+          ship.x = x;
+          ship.y = y;
 
-        // Trail behind ship
-        const trailLen = 0.08;
-        const trailStart = Math.max(0, progress - trailLen);
-        trail.clear();
-        trail.moveTo(pa.x + dx * trailStart, pa.y + dy * trailStart);
-        trail.lineTo(x, y);
-        trail.stroke({ width: 2, color: 0xffd700, alpha: 0.4 });
-      });
-      ticker.start();
-      selectionTickerRef.current = ticker;
+          const trailLen = 0.08;
+          const trailStart = Math.max(0, progress - trailLen);
+          trail.clear();
+          trail.moveTo(pa.x + dx * trailStart, pa.y + dy * trailStart);
+          trail.lineTo(x, y);
+          trail.stroke({ width: 2, color: 0xffd700, alpha: 0.4 });
+        });
+        ticker.start();
+        selectionTickerRef.current = ticker;
+      }
     }
 
     return () => {
@@ -405,7 +407,7 @@ export function GalaxyMap() {
         selectionTickerRef.current = null;
       }
     };
-  }, [selectedPlanets, gridToCanvas]);
+  }, [selectedPlanets, activeRouteId, gridToCanvas]);
 
   // Draw active route with starship animation
   useEffect(() => {
