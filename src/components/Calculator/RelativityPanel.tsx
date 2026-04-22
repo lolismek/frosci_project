@@ -13,10 +13,19 @@ import {
   formatYears,
   formatSpeed,
 } from '../../utils/relativity';
+import { computeRouteLimit } from '../HyperspaceView/braneField';
 import tradeRoutes from '../../data/trade-routes.json';
 import type { TradeRoute } from '../../types';
 
 const C_BARRIER_SLIDER = 0.80;
+
+function routeQualityLabel(apparentMax: number): { label: string; tone: string } {
+  if (apparentMax < 1.5) return { label: 'flat region', tone: 'text-white/40' };
+  if (apparentMax < 10) return { label: 'minor shortcut', tone: 'text-sw-gold/60' };
+  if (apparentMax < 75) return { label: 'brushing a lane', tone: 'text-sw-gold/80' };
+  if (apparentMax < 200) return { label: 'partial lane', tone: 'text-orange-400' };
+  return { label: 'full hyperspace lane', tone: 'text-orange-300' };
+}
 
 export function RelativityPanel() {
   const {
@@ -35,7 +44,11 @@ export function RelativityPanel() {
   const speed = sliderToSpeed(sliderValue);
   const tachyonic = isTachyonic(speed);
   const distance = planetA && planetB ? distanceLY(planetA, planetB) : 0;
-  const shortcutFactor = sliderToShortcutFactor(sliderValue);
+  const routeLimit = useMemo(() => {
+    if (!planetA || !planetB) return null;
+    return computeRouteLimit(planetA.trueX, planetA.trueY, planetB.trueX, planetB.trueY);
+  }, [planetA, planetB]);
+  const shortcutFactor = routeLimit ? sliderToShortcutFactor(sliderValue, routeLimit.apparentMax) : 1;
 
   const result = useMemo(() => {
     if (!distance || speed <= 0 || tachyonic) return null;
@@ -272,8 +285,30 @@ export function RelativityPanel() {
       )}
 
       {/* BRANE-BULK MODE */}
-      {showBraneBulk && braneBulkResult && (
+      {showBraneBulk && braneBulkResult && routeLimit && (
         <>
+          {/* Route-max ceiling for this planet pair */}
+          <div className="bg-orange-500/5 border border-orange-500/20 rounded px-3 py-2">
+            <div className="flex justify-between items-center">
+              <span className="text-white/50 text-[10px] uppercase tracking-wider">Route Max</span>
+              <span className={`text-[10px] uppercase tracking-wider ${routeQualityLabel(routeLimit.apparentMax).tone}`}>
+                {routeQualityLabel(routeLimit.apparentMax).label}
+              </span>
+            </div>
+            <div className="flex justify-between items-baseline mt-1">
+              <span className="text-white/50 text-xs">ceiling set by local brane curvature</span>
+              <span className="text-orange-300 font-mono text-base font-bold">
+                {routeLimit.apparentMax < 10
+                  ? routeLimit.apparentMax.toFixed(2) + 'c'
+                  : Math.round(routeLimit.apparentMax).toLocaleString() + 'c'}
+              </span>
+            </div>
+            <div className="flex justify-between text-[10px] text-white/35 mt-1">
+              <span>Geometric ratio G = L_brane / L_chord</span>
+              <span className="font-mono">{routeLimit.geometricFactor.toFixed(3)}</span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white/5 rounded px-3 py-3 text-center">
               <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
@@ -338,11 +373,28 @@ export function RelativityPanel() {
               Brane-Bulk Physics
             </p>
             <p className="text-white/55 text-xs leading-relaxed">
-              Our galaxy is a 3+1D brane embedded in a higher-dimensional bulk
-              (Randall-Sundrum, 1999). A chord through the bulk is shorter than
-              the curved path along the brane. The ship never locally exceeds c —
-              it just takes the shorter route. This is the shortcut mechanism of
-              Chung-Freese (2000); constrained by GW170817 (2017).
+              The galaxy is a 3+1D brane with a FIXED embedding in the bulk
+              (Randall-Sundrum 1999). Different routes have different apparent
+              speed ceilings, bounded by the brane's local extrinsic curvature:
+              v<sub>app</sub>/c ≈ L<sub>brane</sub>/L<sub>chord</sub>
+              (Chung-Freese 2000, Caldwell-Langlois 2001). The ship never locally
+              exceeds c — the chord is simply shorter than the wrinkled brane
+              path. GW170817 constrains the cosmic-mean brane to be flat today,
+              so "hyperspace lanes" are a dramatization of effects that in our
+              actual universe are very small at large scales.
+            </p>
+          </div>
+
+          <div className="bg-white/3 border border-white/10 rounded px-3 py-2">
+            <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+              Note on scales
+            </p>
+            <p className="text-white/45 text-[11px] leading-relaxed">
+              The visible brane bends are kept modest so the geometry looks
+              physical. The raw geometric ratio G from those bends only yields
+              a few × c — the "route max" shown above dramatizes G via a
+              monotonic nonlinear map so canonical Star Wars speeds are
+              reachable along the more wrinkled corridors.
             </p>
           </div>
 

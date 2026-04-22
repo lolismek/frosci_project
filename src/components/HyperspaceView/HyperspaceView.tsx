@@ -14,8 +14,10 @@ import { createGalaxyPlaneTexture } from './galaxyPlaneTexture';
 import { TravelArc } from './TravelArc';
 import { ShipAnimation } from './ShipAnimation';
 import { WarpedGalaxyPlane } from './WarpedGalaxyPlane';
+import { braneHeight, computeRouteLimit } from './braneField';
 
 const GALAXY_SIZE = 21; // grid units
+const BRANE_BULK_CAMERA_LIFT = 2.5;
 
 export function HyperspaceView() {
   const { selectedPlanets, speedSlider, interpretationMode } = usePlanetStore();
@@ -29,7 +31,12 @@ export function HyperspaceView() {
     return calculateTachyonicTravel(distance, speed);
   }, [distance, speed]);
 
-  const shortcutFactor = sliderToShortcutFactor(speedSlider);
+  const routeLimit = useMemo(() => {
+    if (!planetA || !planetB) return null;
+    return computeRouteLimit(planetA.trueX, planetA.trueY, planetB.trueX, planetB.trueY);
+  }, [planetA, planetB]);
+
+  const shortcutFactor = routeLimit ? sliderToShortcutFactor(speedSlider, routeLimit.apparentMax) : 1;
   const braneBulkResult = useMemo(() => {
     if (!distance || shortcutFactor <= 1) return null;
     return calculateBraneBulkTravel(distance, shortcutFactor);
@@ -41,8 +48,14 @@ export function HyperspaceView() {
   const braneBulkActive = interpretationMode === 'brane-bulk' && braneBulkResult !== null;
 
   const arcHeight = tachyonicActive ? tachyonicResult!.arcHeight : 0;
-  const bulgeHeight = braneBulkActive ? braneBulkResult!.bulgeHeightGrid : 0;
-  const effectiveHeight = Math.max(arcHeight, bulgeHeight);
+
+  // Planet surface heights on the wrinkled brane. In tachyonic / subluminal
+  // mode the plane is flat, so this is zero.
+  const showWrinkledBrane = interpretationMode === 'brane-bulk' && planetA !== undefined && planetB !== undefined;
+  const aHeight = showWrinkledBrane ? braneHeight(planetA!.trueX, planetA!.trueY) : 0;
+  const bHeight = showWrinkledBrane ? braneHeight(planetB!.trueX, planetB!.trueY) : 0;
+
+  const effectiveHeight = tachyonicActive ? arcHeight : (braneBulkActive ? BRANE_BULK_CAMERA_LIFT : 0);
 
   const targetX = planetA && planetB ? (planetA.trueX + planetB.trueX) / 2 : GALAXY_SIZE / 2;
   const targetZ = planetA && planetB ? (planetA.trueY + planetB.trueY) / 2 : GALAXY_SIZE / 2;
@@ -62,17 +75,9 @@ export function HyperspaceView() {
 
       <Stars radius={80} depth={50} count={3000} factor={3} fade speed={0.5} />
 
-      {/* Galaxy brane — warps in brane-bulk mode, flat otherwise */}
-      {braneBulkActive && planetA && planetB ? (
-        <WarpedGalaxyPlane
-          size={GALAXY_SIZE}
-          texture={galaxyTexture}
-          startX={planetA.trueX}
-          startZ={planetA.trueY}
-          endX={planetB.trueX}
-          endZ={planetB.trueY}
-          bulgeHeight={bulgeHeight}
-        />
+      {/* Galaxy brane — globally wrinkled in brane-bulk mode, flat otherwise */}
+      {showWrinkledBrane ? (
+        <WarpedGalaxyPlane size={GALAXY_SIZE} texture={galaxyTexture} />
       ) : (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[GALAXY_SIZE / 2, -0.01, GALAXY_SIZE / 2]}>
           <planeGeometry args={[GALAXY_SIZE, GALAXY_SIZE]} />
@@ -80,12 +85,12 @@ export function HyperspaceView() {
         </mesh>
       )}
 
-      {/* Vertical axis label */}
-      {effectiveHeight > 0 && (
+      {/* Vertical axis label (only used for the tachyonic imaginary dimension) */}
+      {tachyonicActive && (
         <>
           <Line
-            points={[[targetX, 0, targetZ], [targetX, effectiveHeight + 2, targetZ]]}
-            color={tachyonicActive ? '#4FC3F7' : '#FFD166'}
+            points={[[targetX, 0, targetZ], [targetX, arcHeight + 2, targetZ]]}
+            color="#4FC3F7"
             lineWidth={1}
             transparent
             opacity={0.3}
@@ -94,10 +99,10 @@ export function HyperspaceView() {
             gapSize={0.2}
           />
           <Html
-            position={[targetX, effectiveHeight + 2.5, targetZ]}
+            position={[targetX, arcHeight + 2.5, targetZ]}
             center
             style={{
-              color: tachyonicActive ? '#4FC3F7' : '#FFD166',
+              color: '#4FC3F7',
               fontSize: '11px',
               fontFamily: 'system-ui',
               whiteSpace: 'nowrap',
@@ -105,36 +110,39 @@ export function HyperspaceView() {
               pointerEvents: 'none',
             }}
           >
-            {tachyonicActive ? 'Imaginary Dimension' : 'Bulk Dimension'}
+            Imaginary Dimension
           </Html>
         </>
       )}
 
-      {/* Planet markers */}
-      {planetA && <PlanetMarker x={planetA.trueX} z={planetA.trueY} name={planetA.Name} />}
-      {planetB && <PlanetMarker x={planetB.trueX} z={planetB.trueY} name={planetB.Name} />}
+      {/* Planet markers — sit on the brane surface when it's wrinkled */}
+      {planetA && <PlanetMarker x={planetA.trueX} y={aHeight} z={planetA.trueY} name={planetA.Name} />}
+      {planetB && <PlanetMarker x={planetB.trueX} y={bHeight} z={planetB.trueY} name={planetB.Name} />}
 
       {/* --- BRANE-BULK MODE --- */}
       {braneBulkActive && planetA && planetB && (
         <>
-          {/* Bulk chord: a straight line through 3D space from A to B,
-              cutting under the warped galaxy plane */}
+          {/* Bulk chord: a straight line through 3D space from A's
+              brane-surface point to B's, cutting through whatever ridges
+              happen to lie between. */}
           <Line
             points={[
-              [planetA.trueX, 0.05, planetA.trueY],
-              [planetB.trueX, 0.05, planetB.trueY],
+              [planetA.trueX, aHeight, planetA.trueY],
+              [planetB.trueX, bHeight, planetB.trueY],
             ]}
             color="#FFD700"
             lineWidth={4}
             transparent
             opacity={1}
           />
-          {/* Ship on the chord — ship travels at c locally, takes the straight path */}
+          {/* Ship on the chord — local c, straight path through the bulk. */}
           <ShipAnimation
             startX={planetA.trueX}
             startZ={planetA.trueY}
+            startY={aHeight}
             endX={planetB.trueX}
             endZ={planetB.trueY}
+            endY={bHeight}
             arcHeight={0}
             animSpeed={0.6}
             shape="chord"
@@ -193,9 +201,9 @@ export function HyperspaceView() {
   );
 }
 
-function PlanetMarker({ x, z, name }: { x: number; z: number; name: string }) {
+function PlanetMarker({ x, y, z, name }: { x: number; y: number; z: number; name: string }) {
   return (
-    <group position={[x, 0, z]}>
+    <group position={[x, y, z]}>
       <mesh>
         <sphereGeometry args={[0.2, 16, 16]} />
         <meshStandardMaterial color="#FFD700" emissive="#FFD700" emissiveIntensity={2} />

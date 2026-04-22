@@ -9,6 +9,10 @@ interface ShipAnimationProps {
   endZ: number;
   arcHeight: number;
   animSpeed: number;
+  /** Y-offset of the start endpoint (e.g. brane-surface height at A). */
+  startY?: number;
+  /** Y-offset of the end endpoint (e.g. brane-surface height at B). */
+  endY?: number;
   /** 'sequential' = sharp ascent, plateau, sharp descent.
    *  'smooth' = symmetric bulge.
    *  'chord' = straight line (brane-bulk chord through bulk). */
@@ -19,6 +23,7 @@ interface ShipAnimationProps {
 
 export function ShipAnimation({
   startX, startZ, endX, endZ, arcHeight, animSpeed,
+  startY = 0, endY = 0,
   shape = 'sequential', roundTrip = true,
 }: ShipAnimationProps) {
   const meshRef = useRef<Mesh>(null);
@@ -26,8 +31,8 @@ export function ShipAnimation({
   const directionRef = useRef(1);
 
   const curve = useMemo(() => {
-    const start = new Vector3(startX, 0, startZ);
-    const end = new Vector3(endX, 0, endZ);
+    const start = new Vector3(startX, startY, startZ);
+    const end = new Vector3(endX, endY, endZ);
 
     if (shape === 'chord') {
       return new LineCurve3(start, end);
@@ -40,7 +45,7 @@ export function ShipAnimation({
     const ctrl1 = new Vector3(startX + dx * t1, arcHeight, startZ + dz * t1);
     const ctrl2 = new Vector3(startX + dx * t2, arcHeight, startZ + dz * t2);
     return new CubicBezierCurve3(start, ctrl1, ctrl2, end);
-  }, [startX, startZ, endX, endZ, arcHeight, shape]);
+  }, [startX, startZ, endX, endZ, arcHeight, startY, endY, shape]);
 
   useFrame((_, delta) => {
     if (!meshRef.current) return;
