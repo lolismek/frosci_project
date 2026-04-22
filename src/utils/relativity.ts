@@ -1,4 +1,4 @@
-import type { RelativityResult, RoundTripRow, TachyonicResult } from '../types';
+import type { RelativityResult, RoundTripRow, TachyonicResult, BraneBulkResult } from '../types';
 
 // --- Subluminal physics ---
 
@@ -107,13 +107,15 @@ export function formatSpeed(speedC: number): string {
 
 /**
  * Convert a 0-1 slider value to speed as fraction of c.
- * [0, 0.85] → subluminal [0, 0.999999c] (logarithmic)
- * [0.85, 1.0] → superluminal [1.001c, ~1000c] (logarithmic)
+ * [0, 0.80] → subluminal [0, 0.999999c] (logarithmic)
+ * [0.80, 1.0] → superluminal [1.001c, ~1001c] (logarithmic)
+ * The transition is tight (0.999999c → 1.001c) so the slider never
+ * "sits" at c or jumps to an unrealistic 2c as it used to.
  */
 export function sliderToSpeed(value: number): number {
   if (value <= 0) return 0;
 
-  const C_BARRIER = 0.85;
+  const C_BARRIER = 0.80;
 
   if (value <= C_BARRIER) {
     // Subluminal: logarithmic mapping 0 → 0.999999c
@@ -121,16 +123,16 @@ export function sliderToSpeed(value: number): number {
     return 1 - Math.pow(10, -t * 6);
   }
 
-  // Superluminal: logarithmic ramp from ~1c to ~1000c
+  // Superluminal: logarithmic ramp from ~1.001c to ~1001c
   const t = (value - C_BARRIER) / (1 - C_BARRIER); // normalize to 0-1
-  return 1 + Math.pow(10, t * 3); // ~2c to ~1001c
+  return 1 + Math.pow(10, -3 + t * 6);
 }
 
 /** Convert speed back to slider position */
 export function speedToSlider(speedC: number): number {
   if (speedC <= 0) return 0;
 
-  const C_BARRIER = 0.85;
+  const C_BARRIER = 0.80;
 
   if (speedC <= 1) {
     const t = -Math.log10(1 - Math.min(speedC, 1 - 1e-9)) / 6;
@@ -138,6 +140,61 @@ export function speedToSlider(speedC: number): number {
   }
 
   // Superluminal
-  const t = Math.log10(speedC - 1) / 3;
+  const t = (Math.log10(speedC - 1) + 3) / 6;
   return C_BARRIER + t * (1 - C_BARRIER);
+}
+
+// --- Brane-bulk shortcut physics (Randall-Sundrum / Chung-Freese) ---
+
+/**
+ * Compute the shortcut factor from the slider position.
+ * Below the c-barrier: no shortcut (factor = 1). The ship is subluminal, stays on the brane.
+ * Above the c-barrier: shortcut factor ramps logarithmically from 1 to ~1000.
+ * This represents how much deeper into the bulk the ship cuts — larger factor = shorter chord.
+ */
+export function sliderToShortcutFactor(value: number): number {
+  const C_BARRIER = 0.80;
+  if (value <= C_BARRIER) return 1;
+  const t = (value - C_BARRIER) / (1 - C_BARRIER); // 0-1
+  // factor goes from 1 at barrier to 1000 at max slider
+  return Math.pow(10, t * 3);
+}
+
+/**
+ * In brane-bulk cosmology (Randall-Sundrum / Chung-Freese), the brane is curved in
+ * the bulk, so signals on the brane follow a longer arc while a chord through the
+ * bulk cuts a shorter path. We take the user-selected distance as the BRANE arc
+ * length and derive the bulk chord.
+ *
+ *   chord        = braneLength / shortcutFactor
+ *   travel time  = chord / c             (ship moves at c locally through the bulk)
+ *   apparent v   = braneLength / travel time = shortcutFactor · c
+ *
+ * A real RS bulk chord passes through AdS warped geometry, so the geometric "depth"
+ * into the bulk doesn't equal the chord length. For the 3D visualization we expose a
+ * `bulgeHeightGrid` that grows monotonically with log10(shortcutFactor), clamped for
+ * display. This makes "more shortcut = deeper bulk" visually legible without
+ * overclaiming geometric fidelity.
+ */
+export function calculateBraneBulkTravel(distanceLY: number, shortcutFactor: number): BraneBulkResult {
+  const braneLength = distanceLY;
+  const factor = Math.max(1, shortcutFactor);
+
+  const chord = braneLength / factor;
+  const travelTimeYears = chord; // chord (ly) / c (ly/yr) = years
+  const apparentSpeedC = factor;
+
+  // Visualization: bulge amplitude proportional to log(factor).
+  // factor=1 → 0 bulge (flat brane, no shortcut)
+  // factor=1000 → bulge ~ 9 grid units
+  const bulgeHeightGrid = Math.min(15, 3 * Math.log10(factor));
+
+  return {
+    chordLY: chord,
+    braneLengthLY: braneLength,
+    shortcutFactor: factor,
+    apparentSpeedC,
+    travelTimeYears,
+    bulgeHeightGrid,
+  };
 }

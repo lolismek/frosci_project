@@ -3,6 +3,7 @@ import {
   calculateGamma, calculateTravel, calculateRoundTrips,
   calculateTachyonicGamma, calculateTachyonicTravel, isTachyonic,
   sliderToSpeed, speedToSlider, formatYears, formatSpeed,
+  sliderToShortcutFactor, calculateBraneBulkTravel,
 } from './relativity';
 
 describe('calculateGamma', () => {
@@ -122,12 +123,73 @@ describe('sliderToSpeed / speedToSlider', () => {
     expect(speed).toBeGreaterThan(100);
   });
 
+  it('slider just above c-barrier gives speed near 1.001c (no huge jump)', () => {
+    // Used to jump from 0.999999c straight to 2c — now the jump should be tiny.
+    const speed = sliderToSpeed(0.801);
+    expect(speed).toBeGreaterThan(1);
+    expect(speed).toBeLessThan(1.05);
+  });
+
   it('subluminal round-trips correctly', () => {
     for (const s of [0.1, 0.25, 0.5, 0.7]) {
       const speed = sliderToSpeed(s);
       const back = speedToSlider(speed);
       expect(back).toBeCloseTo(s, 3);
     }
+  });
+
+  it('superluminal round-trips correctly', () => {
+    for (const s of [0.82, 0.88, 0.95, 1.0]) {
+      const speed = sliderToSpeed(s);
+      const back = speedToSlider(speed);
+      expect(back).toBeCloseTo(s, 3);
+    }
+  });
+});
+
+describe('brane-bulk shortcut physics', () => {
+  it('subluminal slider yields shortcut factor of 1 (no shortcut)', () => {
+    expect(sliderToShortcutFactor(0)).toBe(1);
+    expect(sliderToShortcutFactor(0.5)).toBe(1);
+    expect(sliderToShortcutFactor(0.80)).toBe(1);
+  });
+
+  it('superluminal slider yields shortcut factor > 1', () => {
+    expect(sliderToShortcutFactor(0.85)).toBeGreaterThan(1);
+    expect(sliderToShortcutFactor(1.0)).toBeCloseTo(1000, -1);
+  });
+
+  it('shortcut factor = 1 yields zero bulge / identical chord (no shortcut)', () => {
+    const r = calculateBraneBulkTravel(10000, 1);
+    expect(r.chordLY).toBeCloseTo(10000, 0);
+    expect(r.braneLengthLY).toBe(10000);
+    expect(r.bulgeHeightGrid).toBeCloseTo(0, 3);
+    expect(r.apparentSpeedC).toBeCloseTo(1, 3);
+  });
+
+  it('shortcut factor > 1: chord < brane length', () => {
+    const r = calculateBraneBulkTravel(10000, 10);
+    expect(r.chordLY).toBeLessThan(r.braneLengthLY);
+    expect(r.chordLY).toBeCloseTo(1000, -1);
+    expect(r.apparentSpeedC).toBeCloseTo(10, 1);
+  });
+
+  it('travel time equals chord/c (ship moves at c in the bulk)', () => {
+    const r = calculateBraneBulkTravel(42500, 100);
+    expect(r.travelTimeYears).toBeCloseTo(r.chordLY, 3);
+  });
+
+  it('apparent speed equals shortcut factor * c', () => {
+    const r = calculateBraneBulkTravel(10000, 50);
+    expect(r.apparentSpeedC).toBeCloseTo(50, 0);
+  });
+
+  it('visual bulge height is monotone in shortcut factor', () => {
+    const r1 = calculateBraneBulkTravel(10000, 2);
+    const r2 = calculateBraneBulkTravel(10000, 20);
+    const r3 = calculateBraneBulkTravel(10000, 500);
+    expect(r2.bulgeHeightGrid).toBeGreaterThan(r1.bulgeHeightGrid);
+    expect(r3.bulgeHeightGrid).toBeGreaterThan(r2.bulgeHeightGrid);
   });
 });
 
