@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   calculateGamma, calculateTravel, calculateRoundTrips,
-  calculateTachyonicGamma, calculateTachyonicTravel, isTachyonic,
+  calculateTachyonicGamma, calculateTachyonicTravel, calculateTachyonicRapidity, isTachyonic,
   sliderToSpeed, speedToSlider, formatYears, formatSpeed,
   sliderToShortcutFactor, calculateBraneBulkTravel,
 } from './relativity';
@@ -84,21 +84,65 @@ describe('tachyonic physics', () => {
     expect(calculateTachyonicGamma(1)).toBe(Infinity);
   });
 
-  it('tachyonic travel decomposes distance correctly', () => {
+  it('tachyonic travel splits the contracted length correctly', () => {
     const result = calculateTachyonicTravel(10000, 2);
     expect(result.realDistance).toBe(10000);
-    // imaginary = L * √(v²/c² - 1) = 10000 * √3 ≈ 17320
-    expect(result.imaginaryDistance).toBeCloseTo(17320, -1);
-    expect(result.hyperspaceFraction).toBeGreaterThan(0);
-    expect(result.hyperspaceFraction).toBeLessThan(1);
+    // imag = L · √(v²/c² − 1) = 10000 · √3 ≈ 17320
+    expect(result.imagContractedLength).toBeCloseTo(17320, -1);
   });
 
-  it('hyperspace fraction increases with speed', () => {
+  it('rest-frame travel time is L/v (tachyon is genuinely FTL)', () => {
+    const r = calculateTachyonicTravel(42500, 2);
+    expect(r.restFrameTimeYears).toBeCloseTo(42500 / 2, 6);
+    const r100 = calculateTachyonicTravel(42500, 100);
+    expect(r100.restFrameTimeYears).toBeCloseTo(425, 6);
+  });
+
+  it('imaginary proper time magnitude equals t · √(v²/c²−1)', () => {
+    const r = calculateTachyonicTravel(10000, 2);
+    expect(r.imagProperTimeYears).toBeCloseTo(r.restFrameTimeYears * Math.sqrt(3), 6);
+  });
+
+  it('imag. contracted length grows without bound in v', () => {
     const r1 = calculateTachyonicTravel(10000, 1.5);
     const r2 = calculateTachyonicTravel(10000, 5);
     const r3 = calculateTachyonicTravel(10000, 100);
-    expect(r2.hyperspaceFraction).toBeGreaterThan(r1.hyperspaceFraction);
-    expect(r3.hyperspaceFraction).toBeGreaterThan(r2.hyperspaceFraction);
+    expect(r2.imagContractedLength).toBeGreaterThan(r1.imagContractedLength);
+    expect(r3.imagContractedLength).toBeGreaterThan(r2.imagContractedLength);
+  });
+
+  it('ellipse semi-major is fixed at L/2 grid units, semi-minor grows then caps', () => {
+    const r1 = calculateTachyonicTravel(10000, 1.5);
+    const r2 = calculateTachyonicTravel(10000, 5);
+    expect(r1.ellipseSemiMajorGrid).toBeCloseTo(10000 / 5000 / 2, 6);
+    expect(r2.ellipseSemiMajorGrid).toBeCloseTo(r1.ellipseSemiMajorGrid, 6);
+    expect(r2.ellipseSemiMinorGrid).toBeGreaterThan(r1.ellipseSemiMinorGrid);
+    // Cap kicks in at imag-length ≫ 80,000 ly; galaxy-scale L·√(v²−1) hits 8 easily at 100c.
+    const rHuge = calculateTachyonicTravel(50000, 100);
+    expect(rHuge.ellipseSemiMinorGrid).toBeLessThanOrEqual(8 + 1e-9);
+  });
+});
+
+describe('tachyonic rapidity (Wick rotation)', () => {
+  it('real part is ½ ln|(v+c)/(v−c)| for v = 2c', () => {
+    const z = calculateTachyonicRapidity(2);
+    expect(z.real).toBeCloseTo(0.5 * Math.log(3), 6);
+    expect(z.imag).toBeCloseTo(Math.PI / 2, 6);
+  });
+
+  it('imaginary part is exactly π/2 for every v > c', () => {
+    for (const v of [1.01, 1.5, 2, 10, 100, 1000]) {
+      expect(calculateTachyonicRapidity(v).imag).toBeCloseTo(Math.PI / 2, 12);
+    }
+  });
+
+  it('real part is monotone decreasing in v (approaches 0 as v → ∞)', () => {
+    const a = calculateTachyonicRapidity(1.5).real;
+    const b = calculateTachyonicRapidity(5).real;
+    const c = calculateTachyonicRapidity(100).real;
+    expect(a).toBeGreaterThan(b);
+    expect(b).toBeGreaterThan(c);
+    expect(c).toBeLessThan(0.05);
   });
 });
 

@@ -46,32 +46,75 @@ export function calculateRoundTrips(
 }
 
 // --- Tachyonic / superluminal physics ---
+//
+// Tachyonic is NOT a mirror of brane-bulk. In brane-bulk the ship
+// locally moves at c and the FTL is a geometric illusion (shorter bulk
+// chord). In tachyonic the ship genuinely exceeds c in real space; the
+// "imaginary" quantities below are artifacts of γ becoming imaginary,
+// not a second path traversed at c.
+//
+// Conventions (following Recami 1986, Bilaniuk–Sudarshan 1962):
+//   γ = 1/√(1 − v²/c²) = −i / √(v²/c² − 1)       for v > c
+//   |γ| = 1/√(v²/c² − 1)
+//   rapidity ζ = atanh(v/c).  For v > c the principal branch gives
+//     ζ = ½ ln|(v+c)/(v−c)| + i·π/2 .
+//   The +iπ/2 is the Wick quarter-turn that motivates the 3D ellipse
+//   diagram in the UI — but the ship's actual worldline is a straight
+//   spacelike line from A to B (Recami draws it that way).
+//   Rest-frame travel time t = L/v.  Proper time τ = t/γ = i·t·√(v²/c²−1);
+//   |τ| = t·√(v²/c²−1) is pedagogical only — tachyons have no rest
+//   frame (Feinberg 1967), so τ has no operational meaning.
 
-/** For v > c, gamma becomes imaginary: γ = i / √(v²/c² - 1). Returns the magnitude. */
+/** The cap (in grid units) for the 3D ellipse's imaginary semi-axis.
+ *  At extreme speeds L·√(v²/c²−1) blows up; we clip so the camera
+ *  frustum stays usable. The UI surfaces the uncapped value too. */
+const ELLIPSE_SEMIMINOR_CAP_GRID = 8;
+
+/** For v > c, |γ| = 1/√(v²/c² − 1). Returns ∞ at v ≤ c (including v=c,
+ *  where the subluminal γ already diverges). */
 export function calculateTachyonicGamma(speedC: number): number {
   if (speedC <= 1) return Infinity;
   return 1 / Math.sqrt(speedC * speedC - 1);
 }
 
-/** Calculate tachyonic travel decomposition into real + imaginary distance components */
-export function calculateTachyonicTravel(distanceLY: number, speedC: number): TachyonicResult {
-  const gammaImag = calculateTachyonicGamma(speedC);
-  const realDistance = distanceLY;
-  const imaginaryDistance = distanceLY * Math.sqrt(speedC * speedC - 1);
-  const totalMagnitude = Math.sqrt(realDistance ** 2 + imaginaryDistance ** 2);
-  const hyperspaceFraction = totalMagnitude > 0 ? imaginaryDistance / totalMagnitude : 0;
+/** Rapidity ζ for v > c: ζ = ½ ln|(v+c)/(v−c)| + i·π/2.
+ *  Returns {real, imag} in (dimensionless) radians of hyperbolic angle. */
+export function calculateTachyonicRapidity(speedC: number): { real: number; imag: number } {
+  if (speedC <= 1) return { real: Infinity, imag: 0 };
+  const real = 0.5 * Math.log((speedC + 1) / (speedC - 1));
+  return { real, imag: Math.PI / 2 };
+}
 
-  // Visual arc height scaled for the 3D scene (galaxy is ~20 grid units wide)
-  const arcHeight = Math.min(imaginaryDistance / 5000, 15); // cap at 15 grid units tall
+export function calculateTachyonicTravel(distanceLY: number, speedC: number): TachyonicResult {
+  const gammaImagMagnitude = calculateTachyonicGamma(speedC);
+  const rapidity = calculateTachyonicRapidity(speedC);
+
+  const realDistance = distanceLY;
+  const imagContractedLength = distanceLY * Math.sqrt(speedC * speedC - 1);
+
+  // t = L/v (ly / (ly/yr) = yr). This is the real observer-frame travel
+  // time — a tachyon is genuinely FTL.
+  const restFrameTimeYears = distanceLY / speedC;
+  const imagProperTimeYears = restFrameTimeYears * Math.sqrt(speedC * speedC - 1);
+
+  // 3D ellipse diagram (grid units — galaxy is ~21 wide, 5000 ly / unit).
+  // Semi-major along the A→B line, semi-minor on the imaginary axis.
+  const semiMajorGrid = (distanceLY / 5000) / 2;
+  const semiMinorGridRaw = (imagContractedLength / 5000) / 2;
+  const ellipseSemiMinorGrid = Math.min(semiMinorGridRaw, ELLIPSE_SEMIMINOR_CAP_GRID);
 
   return {
     distanceLY,
     speedC,
-    gammaImaginary: gammaImag,
+    gammaImagMagnitude,
+    rapidityReal: rapidity.real,
+    rapidityImag: rapidity.imag,
     realDistance,
-    imaginaryDistance,
-    hyperspaceFraction,
-    arcHeight,
+    imagContractedLength,
+    restFrameTimeYears,
+    imagProperTimeYears,
+    ellipseSemiMajorGrid: semiMajorGrid,
+    ellipseSemiMinorGrid,
   };
 }
 

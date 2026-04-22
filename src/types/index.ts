@@ -61,11 +61,28 @@ export interface RoundTripRow {
 export interface TachyonicResult {
   distanceLY: number;
   speedC: number;
-  gammaImaginary: number;
+  /** |γ| = 1/√(v²/c²−1). The sign convention γ = −i·|γ| is the usual one. */
+  gammaImagMagnitude: number;
+  /** Rapidity ζ = atanh(v/c) analytically continued past c:
+   *  for v>c, ζ = ½ ln|(v+c)/(v−c)| + i·π/2. */
+  rapidityReal: number;
+  rapidityImag: number;
+  /** A→B displacement in real space. Unchanged by v. */
   realDistance: number;
-  imaginaryDistance: number;
-  hyperspaceFraction: number;
-  arcHeight: number;
+  /** L·√(v²/c²−1). Imaginary part of the Lorentz-contracted length —
+   *  a mathematical artifact of γ being imaginary, NOT a distance the
+   *  ship traverses. */
+  imagContractedLength: number;
+  /** t = L/v. Real rest-frame travel time. A tachyon is genuinely FTL,
+   *  there is no "local-c chord" as in the brane-bulk mode. */
+  restFrameTimeYears: number;
+  /** |τ| = t·√(v²/c²−1). Magnitude of the imaginary proper time τ = t/γ.
+   *  Formal only: tachyons have no rest frame (Feinberg 1967). */
+  imagProperTimeYears: number;
+  /** Half-ellipse semi-axes for the 3D rapidity diagram (grid units).
+   *  Visualizes the Wick quarter-turn; NOT a spatial trajectory. */
+  ellipseSemiMajorGrid: number;
+  ellipseSemiMinorGrid: number;
 }
 
 export type InterpretationMode = 'brane-bulk' | 'tachyonic';
